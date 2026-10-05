@@ -1,0 +1,10 @@
+# Never commit private keys or signing requests
+*.key
+*.csr
+*.srl
+
+# Node
+node_modules/
+
+# macOS
+.DS_Store

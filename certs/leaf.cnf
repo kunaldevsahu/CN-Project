@@ -1,0 +1,10 @@
+[req]
+distinguished_name = dn
+prompt = no
+[dn]
+CN = app.team1.test
+[v3_leaf]
+basicConstraints = critical, CA:FALSE
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = DNS:app.team1.test, DNS:api.team1.test

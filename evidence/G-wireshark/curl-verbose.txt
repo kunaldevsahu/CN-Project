@@ -1,0 +1,70 @@
+# Saved on Kunal's Mac (10.7.16.48) during the Wireshark capture, 2026-10-02 16:51 IST (11:21 GMT)
+# Command: curl -v --tls-max 1.2 https://app.team1.test/api/status 2>&1 | tee ~/curl-verbose.txt
+# Note: a chat app altered curl's "* " and "> " line prefixes and "*/*" when this was pasted; they are restored here.
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0* Host app.team1.test:443 was resolved.
+* IPv6: (none)
+* IPv4: 10.7.21.121
+*   Trying 10.7.21.121:443...
+* Connected to app.team1.test (10.7.21.121) port 443
+* ALPN: curl offers h2,http/1.1
+* (304) (OUT), TLS handshake, Client hello (1):
+} [226 bytes data]
+*  CAfile: /etc/ssl/cert.pem
+*  CApath: none
+* (304) (IN), TLS handshake, Server hello (2):
+{ [100 bytes data]
+* TLSv1.2 (IN), TLS handshake, Certificate (11):
+{ [885 bytes data]
+* TLSv1.2 (IN), TLS handshake, Server key exchange (12):
+{ [300 bytes data]
+* TLSv1.2 (IN), TLS handshake, Server finished (14):
+{ [4 bytes data]
+* TLSv1.2 (OUT), TLS handshake, Client key exchange (16):
+} [37 bytes data]
+* TLSv1.2 (OUT), TLS change cipher, Change cipher spec (1):
+} [1 bytes data]
+* TLSv1.2 (OUT), TLS handshake, Finished (20):
+} [16 bytes data]
+* TLSv1.2 (IN), TLS change cipher, Change cipher spec (1):
+{ [1 bytes data]
+* TLSv1.2 (IN), TLS handshake, Finished (20):
+{ [16 bytes data]
+* SSL connection using TLSv1.2 / ECDHE-RSA-CHACHA20-POLY1305 / [blank] / UNDEF
+* ALPN: server accepted h2
+* Server certificate:
+*  subject: CN=app.team1.test
+*  start date: Oct  2 10:59:22 2026 GMT
+*  expire date: Nov  3 10:59:22 2027 GMT
+*  subjectAltName: host "app.team1.test" matched cert's "app.team1.test"
+*  issuer: CN=Team1 Local Root CA
+*  SSL certificate verify ok.
+* using HTTP/2
+* [HTTP/2] [1] OPENED stream for https://app.team1.test/api/status
+* [HTTP/2] [1] [:method: GET]
+* [HTTP/2] [1] [:scheme: https]
+* [HTTP/2] [1] [:authority: app.team1.test]
+* [HTTP/2] [1] [:path: /api/status]
+* [HTTP/2] [1] [user-agent: curl/8.7.1]
+* [HTTP/2] [1] [accept: */*]
+> GET /api/status HTTP/2
+> Host: app.team1.test
+> User-Agent: curl/8.7.1
+> Accept: */*
+>
+* Request completely sent off
+< HTTP/2 200
+< server: nginx/1.31.6
+< date: Fri, 02 Oct 2026 11:21:29 GMT
+< content-type: application/json; charset=utf-8
+< content-length: 63
+< x-powered-by: Express
+< x-backend: A
+< cache-control: no-store
+< etag: W/"3f-R84iEXag9H8xPx3obEIQfdGVXF8"
+<
+{ [63 bytes data]
+100    63  100    63    0     0    275      0 --:--:-- --:--:-- --:--:--   276
+* Connection #0 to host app.team1.test left intact
+{"backend":"A","status":"ok","time":"2026-10-02T11:21:29.124Z"}
