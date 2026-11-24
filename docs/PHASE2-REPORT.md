@@ -19,11 +19,11 @@ Domain: `team1.test` · LAN: college Wi-Fi 10.7.0.0/19 · Review 2 date: ____
 
 Updated topology:
 ```
-                         ┌── DNS :53 ──► Mac 1  dnsmasq PRIMARY    10.7.16.0
+                         ┌── DNS :53 ──► Mac 1  dnsmasq PRIMARY    10.7.17.233
 Client (Mac 4 / Mac 1) ──┤
-                         └── DNS :53 ──► Mac 3  dnsmasq BACKUP     10.7.18.211
+                         └── DNS :53 ──► Mac 3  dnsmasq BACKUP     10.7.3.175
         │
-        └── HTTPS :443 ──► app.team1.test ──► Mac 2 nginx PRIMARY edge 10.7.21.121
+        └── HTTPS :443 ──► app.team1.test ──► Mac 2 nginx PRIMARY edge 10.7.30.229
                                              (Mac 3 nginx STANDBY edge, after cutover)
                                                    ├─ HTTP :3001 ─► Mac 3 Backend A  [pf: edges only]
                                                    └─ HTTP :3002 ─► Mac 4 Backend B  [pf: edges only]
@@ -33,7 +33,7 @@ Client (Mac 4 / Mac 1) ──┤
 
 | Test | Procedure | Expected | Observed ▢ | Evidence |
 |---|---|---|---|---|
-| A · Primary DNS stopped | stop dnsmasq on Mac 1, client resolves | answered by 10.7.18.211, app works | | `A-backup-dns/` |
+| A · Primary DNS stopped | stop dnsmasq on Mac 1, client resolves | answered by 10.7.3.175, app works | | `A-backup-dns/` |
 | A · Primary DNS host off | Mac 1 Wi-Fi off | answered by backup after ≈__ s timeout | | |
 | A · DNS vs app failure | both backends stopped | dig OK, curl 502 | | |
 | B · Record change, TTL 30 s | `set-record.sh` on both servers | server answer changes at once; client cache after ≤30 s | client switched after __ s | `B-ttl/` |
@@ -43,7 +43,7 @@ Client (Mac 4 / Mac 1) ──┤
 | D · Backend A stopped | Ctrl+C on Mac 3 | no failed request; `502, 200` retry, then B only | | `D-failover/` |
 | D · Backend A host off | Mac 3 Wi-Fi off | `504, 200`, request ≈2 s | | |
 | D · Recovery | restart A | A back within ≤10 s | after __ s | |
-| E · Edge cutover | record → 10.7.18.211, both edges up | cached client on Mac 2 ≤30 s, new lookup on Mac 3, 0 failures | | `E-cutover/` |
+| E · Edge cutover | record → 10.7.3.175, both edges up | cached client on Mac 2 ≤30 s, new lookup on Mac 3, 0 failures | | `E-cutover/` |
 | E · Early shutdown (optional) | stop Mac 2 at change time | cached clients fail until TTL expiry | | |
 
 ## 3. Troubleshooting findings (Extension F)

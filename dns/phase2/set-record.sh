@@ -3,8 +3,8 @@
 # Run on EACH DNS server (Mac 1 primary and Mac 3 backup), within a few seconds of each other,
 # otherwise clients that ask the backup get a different answer from clients that ask the primary.
 #
-#   bash set-record.sh app.team1.test 10.7.18.211    # cut over to the standby edge (Mac 3)
-#   bash set-record.sh app.team1.test 10.7.21.121    # back to the primary edge (Mac 2)
+#   bash set-record.sh app.team1.test 10.7.3.175    # cut over to the standby edge (Mac 3)
+#   bash set-record.sh app.team1.test 10.7.30.229    # back to the primary edge (Mac 2)
 #   bash set-record.sh --show                        # print the current records
 set -euo pipefail
 

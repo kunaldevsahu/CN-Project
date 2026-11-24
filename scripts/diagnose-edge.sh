@@ -2,7 +2,7 @@
 # Extension F: checks run ON AN EDGE (Mac 2 primary, or Mac 3 standby). Read-only.
 #   bash diagnose-edge.sh
 # Use it after diagnose.sh on a client points at the edge or the edge->backend hop.
-BACKENDS="10.7.18.211:3001 10.7.16.48:3002"
+BACKENDS="10.7.3.175:3001 10.7.30.71:3002"
 CONF="$(brew --prefix)/etc/nginx/servers/team1.conf"
 LOGDIR="$(brew --prefix)/var/log/nginx"
 B=$'\e[1m'; N=$'\e[0m'

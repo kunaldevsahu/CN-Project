@@ -4,9 +4,9 @@ Same convention as Phase 1: terminal output pasted into a `.md` in the folder (w
 
 ## A-backup-dns/
 - [ ] A1 `scutil --dns` on Kunal showing both nameservers
-- [ ] A2 `dig app.team1.test` with `SERVER: 10.7.16.0` (baseline)
+- [ ] A2 `dig app.team1.test` with `SERVER: 10.7.17.233` (baseline)
 - [ ] A3 Vaibhav: `sudo brew services stop dnsmasq` + `sudo brew services list`
-- [ ] A4 `dig app.team1.test` with `SERVER: 10.7.18.211` + curl A/B still working
+- [ ] A4 `dig app.team1.test` with `SERVER: 10.7.3.175` + curl A/B still working
 - [ ] A5 Himanshu: `tail` of `/opt/homebrew/var/log/dnsmasq.log` showing Kunal's queries
 - [ ] A6 Wireshark (`udp port 53 or icmp`): query → ICMP port unreachable → query to backup → answer. Save `P2-A-dns-failover.pcapng`
 - [ ] A7 (optional) Mac 1 Wi-Fi off: timeout before failover
@@ -37,7 +37,7 @@ Same convention as Phase 1: terminal output pasted into a `.md` in the folder (w
 - [ ] D6 Phase 1 vs Phase 2 `team1.conf` diff (`diff nginx/team1.conf nginx/phase2/team1.conf`)
 
 ## E-cutover/
-- [ ] E1 Standby test with `--resolve … :10.7.18.211` (no cert warning, x-edge Mac 3)
+- [ ] E1 Standby test with `--resolve … :10.7.3.175` (no cert warning, x-edge Mac 3)
 - [ ] E2 `make-standby-cert.sh` output (different serial, same SANs, same issuer)
 - [ ] E3 `P2-E-cutover.txt` watcher: Mac 2 → Mac 3 with no failed request
 - [ ] E4 Two clients at the same moment on different edges (screenshot side by side)

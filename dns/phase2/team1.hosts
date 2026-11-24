@@ -2,6 +2,6 @@
 # Copy to /opt/homebrew/etc/team1.hosts on BOTH DNS servers (Mac 1 and Mac 3).
 # Change with dns/phase2/set-record.sh, or edit and run: sudo pkill -HUP -x dnsmasq
 #
-# Edges:  primary Mac 2 (Pranav) 10.7.21.121   standby Mac 3 (Himanshu) 10.7.18.211
-10.7.21.121  app.team1.test
-10.7.21.121  api.team1.test
+# Edges:  primary Mac 2 (Pranav) 10.7.30.229   standby Mac 3 (Himanshu) 10.7.3.175
+10.7.30.229  app.team1.test
+10.7.30.229  api.team1.test

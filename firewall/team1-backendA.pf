@@ -2,7 +2,7 @@
 # Loaded into the pf sub-anchor "com.apple/team1" by firewall/fw-on.sh.
 # /etc/pf.conf is NOT edited; fw-off.sh removes these rules and restores the original state.
 
-edges        = "{ 10.7.21.121 }"   # Mac 2 primary edge. (The standby edge on Mac 3 reaches 3001 over lo0.)
+edges        = "{ 10.7.30.229 }"   # Mac 2 primary edge. (The standby edge on Mac 3 reaches 3001 over lo0.)
 backend_port = "3001"
 
 # Traffic from this Mac to itself (lo0) is always allowed

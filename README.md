@@ -4,10 +4,10 @@ Computer Networks course project. A client resolves `app.team1.test` through our
 
 ```
 Client (Mac 1 / Mac 4)
-  └─ DNS query :53 ──────────► Mac 1  dnsmasq   10.7.16.0      (Vaibhav)
-  └─ HTTPS :443 ─────────────► Mac 2  nginx     10.7.21.121    (Pranav)   TLS terminates here
-                                  ├─ HTTP :3001 ► Mac 3  Backend A  10.7.18.211  (Himanshu)
-                                  └─ HTTP :3002 ► Mac 4  Backend B  10.7.16.48   (Kunal)
+  └─ DNS query :53 ──────────► Mac 1  dnsmasq   10.7.17.233      (Vaibhav)
+  └─ HTTPS :443 ─────────────► Mac 2  nginx     10.7.30.229    (Pranav)   TLS terminates here
+                                  ├─ HTTP :3001 ► Mac 3  Backend A  10.7.3.175  (Himanshu)
+                                  └─ HTTP :3002 ► Mac 4  Backend B  10.7.30.71   (Kunal)
 ```
 
 ## Repository layout

@@ -2,7 +2,7 @@
 # Extension F: layer-by-layer diagnosis from a CLIENT Mac (Kunal or Vaibhav). Read-only, safe to run anytime.
 #   bash diagnose.sh                      # checks app.team1.test
 #   bash diagnose.sh api.team1.test
-#   EXPECT=10.7.21.121 bash diagnose.sh   # also flag a DNS answer that isn't the expected edge
+#   EXPECT=10.7.30.229 bash diagnose.sh   # also flag a DNS answer that isn't the expected edge
 #
 # Order: resolver config -> DNS -> IP reachability -> TCP port -> TLS -> HTTP -> load balancing.
 # It stops pointing at the FIRST layer that fails; everything above that layer is not trustworthy yet.

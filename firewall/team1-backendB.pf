@@ -4,7 +4,7 @@
 
 # Both edges are trusted proxies: Mac 2 (primary) and Mac 3 (standby edge, Extension E).
 # Mac 3 is listed because of its standby nginx role, not because it is a client.
-edges        = "{ 10.7.21.121 10.7.18.211 }"
+edges        = "{ 10.7.30.229 10.7.3.175 }"
 backend_port = "3002"
 
 # Traffic from this Mac to itself (lo0) is always allowed
