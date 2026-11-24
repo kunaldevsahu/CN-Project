@@ -1,0 +1,18 @@
+# ---- Extension C: service isolation for Backend B (Mac 4, Kunal, port 3002) ----
+# Loaded into the pf sub-anchor "com.apple/team1" by firewall/fw-on.sh.
+# /etc/pf.conf is NOT edited; fw-off.sh removes these rules and restores the original state.
+
+# Both edges are trusted proxies: Mac 2 (primary) and Mac 3 (standby edge, Extension E).
+# Mac 3 is listed because of its standby nginx role, not because it is a client.
+edges        = "{ 10.7.21.121 10.7.18.211 }"
+backend_port = "3002"
+
+# Traffic from this Mac to itself (lo0) is always allowed
+pass in quick on lo0 all
+
+# Only the edges may open TCP connections to the backend port
+pass in quick proto tcp from $edges to any port $backend_port
+
+# Everyone else is silently dropped (no RST), so a client sees a timeout, not "connection refused".
+# "log" copies dropped packets to pflog0 for evidence: sudo tcpdump -n -e -i pflog0
+block drop in log quick proto tcp from any to any port $backend_port

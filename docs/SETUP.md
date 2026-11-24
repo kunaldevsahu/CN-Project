@@ -5,7 +5,7 @@ How every machine was configured on 2026-10-02. Domain: `team1.test`. Network: c
 | Machine | Member | IP | Role |
 |---|---|---|---|
 | Mac 1 | Vaibhav | 10.7.16.0 | dnsmasq (DNS) + client |
-| Mac 2 | Kevish | 10.7.21.121 | nginx edge, TLS, load balancer |
+| Mac 2 | Pranav | 10.7.21.121 | nginx edge, TLS, load balancer |
 | Mac 3 | Himanshu | 10.7.18.211 | Backend A :3001 |
 | Mac 4 | Kunal | 10.7.16.48 | Backend B :3002 + capture client |
 

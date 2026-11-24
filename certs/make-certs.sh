@@ -1,5 +1,5 @@
 #!/bin/bash
-# Recreates the Team 1 root CA and the server certificate (run on Mac 2, Kevish).
+# Recreates the Team 1 root CA and the server certificate (run on Mac 2, Pranav).
 # These are the exact commands used on 2026-10-02.
 # Output: rootCA.pem (share with clients), rootCA.key + team1.key (NEVER share), team1.crt
 set -e

@@ -1,6 +1,6 @@
 # D · Reverse proxy and load balancing evidence (Task D) — captured 2026-10-02
 
-## nginx config test (Kevish)
+## nginx config test (Pranav)
 ```
 sudo nginx -t
 nginx: the configuration file /opt/homebrew/etc/nginx/nginx.conf syntax is ok
