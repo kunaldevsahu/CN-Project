@@ -29,7 +29,7 @@ Main test client = mac1 (Vaibhav, 10.7.17.233). Edge = Mac 4 (Kunal, 10.7.30.71)
 | `00-events.txt` | Primary DNS stopped 15:45:42 / started 15:46:06 with `brew services` on mac1 |
 | `01-baseline.txt` | mac3 resolver order (10.7.17.233, 10.7.3.175); both servers same record; dig `SERVER: 10.7.17.233` |
 | `02-primary-down-client.txt` | Primary down: mac3 and mac1 plain dig → `SERVER: 10.7.3.175` (1.05 s); HTTPS 8/8 × 200 |
-| `03-mac3-client-dns-icmp.pcap` | pktap on mac3: query → ICMP port unreachable from mac1 → same query to the backup → answer |
+| `03-mac3-client-dns-icmp.pcap` | pktap on mac3: query → ICMP port unreachable from mac1 → same query to the backup → answer (filtered, see below) |
 | `04-pcap-summary.txt` | The capture decoded, only packets about app.team1.test (ICMP matched to our queries by source port) |
 | `05-restore.txt` | Primary back: `SERVER: 10.7.17.233`, 0.04 s |
 | `06-summary.txt` | Numbers: 1.01 s from primary to backup for plain dig; 5 ICMP, 8 answers from the backup |
@@ -78,7 +78,7 @@ Main test client = mac1 (Vaibhav, 10.7.17.233). Edge = Mac 4 (Kunal, 10.7.30.71)
 | `04-client-loop-cutover.txt` | mac1, 90 s: server answer vs IP curl used; old edge for 21.3 s after the change, then mac3-standby; 71/71 × 200 |
 | `05-set-record-to-standby.txt` | Both DNS servers changed in the same second, both answer 10.7.3.175 |
 | `06-mac3-as-client.txt` | Second client: cached → old edge; flush → new edge at once |
-| `07-mac1-dns-443.pcap` | pktap (en0 + lo0) on mac1: its own DNS lookups + TCP to each edge |
+| `07-mac1-dns-443.pcap` | pktap (en0 + lo0) on mac1: its own DNS lookups + TCP to each edge (filtered, see below) |
 | `08-pcap-summary.txt` | mac1's own lookups every ~37.7 s (TTL 30); connections per edge |
 | `09-edge-logs.txt` | Requests per 5 s on each edge: Mac 4 quiet after 19.9 s, mac3 from 21.2 s |
 | `10-summary.txt` | All numbers: 0 failures, 21.3 s switch, 23.3 s back, cache explanation |
@@ -107,3 +107,12 @@ Main test client = mac1 (Vaibhav, 10.7.17.233). Edge = Mac 4 (Kunal, 10.7.30.71)
 | `05-both-backends-down.txt` | A + B stopped: TLS OK, HTTP/2 502 from nginx, `no live upstreams`; both restarted |
 
 Not committed on purpose: private keys (`*.key`), CSRs, `rootCA.srl` (`.gitignore`).
+
+**Privacy filtering.** `A/03` and `E/07` were captured with a plain `port 53` filter on a teammate's Mac, so they also
+held that Mac's unrelated DNS lookups (14 and 44 names). Before committing they were reduced to our own traffic with
+Wireshark's tshark (output is pcapng, which tcpdump and Wireshark read whatever the file extension):
+`tshark -r A03.pcap -Y 'icmp or dns.qry.name contains "team1"' -F pcapng -w 03-mac3-client-dns-icmp.pcap` and
+`tshark -r E07.pcap -Y 'tcp.port == 443 or dns.qry.name contains "team1"' -F pcapng -w 07-mac1-dns-443.pcap`.
+Checked: every packet the summaries use (team1 queries/answers, ICMP, SYNs per edge) is identical, and
+`E-cutover.sh --analyze` on the filtered file gives the same 08/10 results. Do the same before committing new
+captures from a live run (`EVID=~/demo-day` keeps live runs out of the repo).
