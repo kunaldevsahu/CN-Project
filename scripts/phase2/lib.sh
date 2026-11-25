@@ -22,8 +22,8 @@ SSH=(ssh -o BatchMode=yes -o ConnectTimeout=6)
 header() {  # header "<title>" "<extra line>"...
   echo "# $1"
   echo "# Date:      $(date '+%Y-%m-%d %H:%M:%S %Z')"
-  echo "# Run on:    $(hostname -s) $(ipconfig getifaddr en0)  (script: ${0#"$REPO"/} ${SCRIPT_ARGS:-})"
-  echo "# Client:    $CLIENT = $("${SSH[@]}" "$CLIENT" 'echo "$(hostname -s) $(ipconfig getifaddr en0)"' 2>/dev/null)"
+  echo "# Run on:    $(scutil --get LocalHostName) $(ipconfig getifaddr en0)  (script: ${0#"$REPO"/} ${SCRIPT_ARGS:-})"
+  echo "# Client:    $CLIENT = $("${SSH[@]}" "$CLIENT" 'echo "$(scutil --get LocalHostName) $(ipconfig getifaddr en0)"' 2>/dev/null)"
   shift; for l in "$@"; do echo "# $l"; done
   echo "# Every command is printed before its output: '\$ ' = this Mac, '[$CLIENT]\$ ' = the client."
   echo

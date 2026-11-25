@@ -4,11 +4,14 @@
 # otherwise clients that ask the backup get a different answer from clients that ask the primary.
 #
 #   bash set-record.sh app.team1.test 10.7.3.175    # cut over to the standby edge (Mac 3)
-#   bash set-record.sh app.team1.test 10.7.30.229    # back to the primary edge (Mac 2)
+#   bash set-record.sh app.team1.test 10.7.30.71    # back to the primary edge (Mac 4, since Phase 2)
 #   bash set-record.sh --show                        # print the current records
+# From Mac 4 for both DNS Macs at once: bash scripts/phase2/set-record-both.sh <name> <ip>
+# (team1.hosts keeps app and api on ONE line, so changing app also changes api.)
 set -euo pipefail
 
-HOSTS="$(brew --prefix)/etc/team1.hosts"
+# Over ssh (non-interactive shell) brew is not on PATH, so fall back to the Apple-silicon prefix
+HOSTS="$(brew --prefix 2>/dev/null || echo /opt/homebrew)/etc/team1.hosts"
 
 if [[ "${1:-}" == "--show" ]]; then
   grep -v '^#' "$HOSTS" | sed '/^$/d'
@@ -33,8 +36,8 @@ awk -v n="$NAME" -v ip="$IP" '
 ' "$HOSTS.bak" > "$HOSTS"
 
 # SIGHUP: dnsmasq re-reads addn-hosts and clears its own cache
-sudo pkill -HUP -x dnsmasq
+sudo -n /usr/bin/pkill -HUP -x dnsmasq   # passwordless rule from scripts/phase2/bootstrap-mac.sh
 
-echo "$(date +%H:%M:%S)  $NAME -> $IP  (dnsmasq reloaded on $(hostname -s))"
+echo "$(date +%H:%M:%S)  $NAME -> $IP  (dnsmasq reloaded on $(scutil --get LocalHostName))"
 sleep 1
-dig @127.0.0.1 "$NAME" +noall +answer
+dig +nocmd @127.0.0.1 "$NAME" +noall +answer

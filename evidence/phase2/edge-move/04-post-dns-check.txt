@@ -1,0 +1,72 @@
+# Edge move 04 · After the DNS change: both servers answer 10.7.30.71, client reaches the new edge by name
+# Date:      2026-11-25 15:02:53 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/edge-move-check.sh post)
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+## 1. Records on each DNS server, asked directly from the client
+[mac1]$ dig +nocmd @10.7.17.233 app.team1.test +noall +answer +comments | grep -E 'status:|IN[[:space:]]+A'
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 10781
+app.team1.test.		30	IN	A	10.7.30.71
+
+[mac1]$ dig +nocmd @10.7.17.233 api.team1.test +noall +answer +comments | grep -E 'status:|IN[[:space:]]+A'
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 35319
+api.team1.test.		30	IN	A	10.7.30.71
+
+[mac1]$ dig +nocmd @10.7.3.175 app.team1.test +noall +answer +comments | grep -E 'status:|IN[[:space:]]+A'
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 49652
+app.team1.test.		30	IN	A	10.7.30.71
+
+[mac1]$ dig +nocmd @10.7.3.175 api.team1.test +noall +answer +comments | grep -E 'status:|IN[[:space:]]+A'
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 54576
+api.team1.test.		30	IN	A	10.7.30.71
+
+## 2. The client's own resolver (servers it uses, then a plain dig)
+[mac1]$ networksetup -getdnsservers Wi-Fi
+10.7.17.233
+10.7.3.175
+
+[mac1]$ dig +nocmd app.team1.test +noall +answer +stats | grep -E 'IN[[:space:]]+A|SERVER'
+app.team1.test.		30	IN	A	10.7.30.71
+;; SERVER: 10.7.17.233#53(10.7.17.233)
+
+[mac1]$ dscacheutil -q host -a name app.team1.test
+name: app.team1.test
+ip_address: 10.7.30.71
+
+
+## 3. HTTPS by name, system trust only (no -k, no --cacert)
+[mac1]$ curl -sv https://app.team1.test/api/status -o /dev/null 2>&1 | grep -iE '^\* (Connected|SSL|Server certificate)|^\*  +(subject|issuer|start date|expire date)|^< (HTTP|x-)'
+* Connected to app.team1.test (10.7.30.71) port 443
+* SSL connection using TLSv1.3 / AEAD-CHACHA20-POLY1305-SHA256 / [blank] / UNDEF
+* Server certificate:
+*  subject: CN=app.team1.test
+*  start date: Nov 25 09:11:19 2026 GMT
+*  expire date: Dec 27 09:11:19 2027 GMT
+*  subjectAltName: host "app.team1.test" matched cert's "app.team1.test"
+*  issuer: CN=Team1 Local Root CA 2026-11
+< HTTP/2 200 
+< x-powered-by: Express
+< x-backend: B
+< x-edge: mac4-primary
+< x-upstream: 127.0.0.1:3002
+< x-upstream-status: 200
+
+## 4. 10 requests by name
+[mac1]$ for i in $(seq 1 10); do
+  h=$(curl -s -D - -o /dev/null  https://$NAME/api/status)
+  printf '%s  #%-2s http=%s  x-edge=%s  x-backend=%s  x-upstream=%s\n' "$(date +%T)" $i \
+    "$(echo "$h" | awk 'NR==1{print $2}')" "$(echo "$h" | hv x-edge)" "$(echo "$h" | hv x-backend)" "$(echo "$h" | hv x-upstream)"
+  sleep 0.3
+done
+15:03:00  #1  http=200  x-edge=mac4-primary  x-backend=B  x-upstream=127.0.0.1:3002
+15:03:01  #2  http=200  x-edge=mac4-primary  x-backend=A  x-upstream=10.7.3.175:3001
+15:03:01  #3  http=200  x-edge=mac4-primary  x-backend=B  x-upstream=127.0.0.1:3002
+15:03:02  #4  http=200  x-edge=mac4-primary  x-backend=A  x-upstream=10.7.3.175:3001
+15:03:02  #5  http=200  x-edge=mac4-primary  x-backend=B  x-upstream=127.0.0.1:3002
+15:03:03  #6  http=200  x-edge=mac4-primary  x-backend=A  x-upstream=10.7.3.175:3001
+15:03:03  #7  http=200  x-edge=mac4-primary  x-backend=B  x-upstream=127.0.0.1:3002
+15:03:04  #8  http=200  x-edge=mac4-primary  x-backend=A  x-upstream=10.7.3.175:3001
+15:03:04  #9  http=200  x-edge=mac4-primary  x-backend=B  x-upstream=127.0.0.1:3002
+15:03:05  #10 http=200  x-edge=mac4-primary  x-backend=A  x-upstream=10.7.3.175:3001
+

@@ -1,4 +1,20 @@
-# Phase 2 evidence checklist
+# Phase 2 evidence
+
+## Index: file → what it proves → extension
+Every `.txt` starts with a header (title, date, which Mac ran it, the script) and prints each command before its output.
+Scripts live in `scripts/phase2/` and are re-run live on demo day. Main client = Mac 1 (Vaibhav); scripts run on Mac 4.
+
+| File | What it proves | Ext |
+|---|---|---|
+| `edge-move/00-why-the-edge-moved.md` | Why the edge moved from Mac 2 (absent) to Mac 4; new roles; shared-fate trade-off | setup |
+| `edge-move/01-make-certs.txt` | New CA `Team1 Local Root CA 2026-11` + edge cert (SAN app/api), chain verifies | setup, E |
+| `edge-move/02-pre-dns-check.txt` | Before any DNS change: nginx -t OK, :443 listening, cert chain OK, mac1 → `--resolve` → 10 × 200 A/B via `mac4-primary` (CA not yet trusted on mac1, so `--cacert`, never `-k`) | setup |
+| `edge-move/03-set-record.txt` | app/api → 10.7.30.71 on BOTH DNS servers at 15:01:50, both answer TTL 30 | setup, B |
+| `edge-move/04-post-dns-check.txt` | mac1 by name: dig both servers + system resolver = 10.7.30.71, HTTPS trusted via keychain only, 10 × 200 A/B | setup |
+
+---
+
+# Original checklist (Mac 2-era plan, kept for reference until the final rewrite)
 
 Same convention as Phase 1: terminal output pasted into a `.md` in the folder (with the prompt line, so it is clear whose Mac), plus screenshots named `<ext><n>-<what>.png`. The evaluator should find anything in 30 seconds.
 

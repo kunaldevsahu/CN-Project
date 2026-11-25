@@ -3,7 +3,7 @@
 # Run on Mac 4. Client-side checks run on mac1 over ssh.
 #   bash scripts/phase2/edge-move-check.sh pre    # before DNS: curl --resolve app.team1.test:443:10.7.30.71
 #   bash scripts/phase2/edge-move-check.sh post   # after DNS:  dig both DNS servers + curl by name
-# Evidence: evidence/phase2/edge-move/02-pre-dns-check.txt / 03-post-dns-check.txt
+# Evidence: evidence/phase2/edge-move/02-pre-dns-check.txt / 04-post-dns-check.txt (03 = set-record-both.sh)
 set -uo pipefail
 source "$(dirname "$0")/lib.sh"
 MODE="${1:?usage: edge-move-check.sh pre|post}"; SCRIPT_ARGS="$*"
@@ -37,14 +37,14 @@ pre() {
 }
 
 post() {
-  header "Edge move 03 · After the DNS change: both servers answer $EDGE_IP, client reaches the new edge by name"
+  header "Edge move 04 · After the DNS change: both servers answer $EDGE_IP, client reaches the new edge by name"
   echo "## 1. Records on each DNS server, asked directly from the client"
   for s in "$DNS1" "$DNS2"; do for n in app.team1.test api.team1.test; do
-    crun "dig @$s $n +noall +answer +comments | grep -E 'status:|IN[[:space:]]+A'"
+    crun "dig +nocmd @$s $n +noall +answer +comments | grep -E 'status:|IN[[:space:]]+A'"
   done; done
   echo "## 2. The client's own resolver (servers it uses, then a plain dig)"
   crun "networksetup -getdnsservers Wi-Fi"
-  crun "dig $NAME +noall +answer +stats | grep -E 'IN[[:space:]]+A|SERVER'"
+  crun "dig +nocmd $NAME +noall +answer +stats | grep -E 'IN[[:space:]]+A|SERVER'"
   crun "dscacheutil -q host -a name $NAME"
   echo "## 3. HTTPS by name, system trust only (no -k, no --cacert)"
   crun "curl -sv https://$NAME/api/status -o /dev/null 2>&1 | grep -iE '^\\* (Connected|SSL|Server certificate)|^\\*  +(subject|issuer|start date|expire date)|^< (HTTP|x-)'"
@@ -52,7 +52,7 @@ post() {
   crun "$(loop10)"
 }
 
-OUT_FILE=$([ "$MODE" = pre ] && echo 02-pre-dns-check.txt || echo 03-post-dns-check.txt)
+OUT_FILE=$([ "$MODE" = pre ] && echo 02-pre-dns-check.txt || echo 04-post-dns-check.txt)
 OUT="$(evidence_path edge-move "$OUT_FILE")"
 case "$MODE" in pre) pre ;; post) post ;; *) echo "usage: $0 pre|post"; exit 1 ;; esac 2>&1 | tee "$OUT"
 echo "(saved: ${OUT#"$REPO"/})"
