@@ -31,7 +31,9 @@ clocks; that request reached A just before the kill. Run 2 classifies everything
   connection to A per lifetime of the process. When A exits, its kernel sends FIN on that connection
   (start of the down window).
 - **A real, unplanned failover** happened at 15:01:41 during setup: `connect() to 10.7.3.175:3001 failed
-  (65: No route to host)` in nginx's error.log (a Wi-Fi blip) and that request was served by B. Nobody noticed.
+  (65: No route to host)` in nginx's error.log, six seconds after nginx was restarted, and that request was served by B.
+  Nobody noticed. Most likely macOS Local Network privacy checking the newly started nginx, not Wi-Fi: the same
+  error with no packet on the wire stopped the standby edge on mac3 (see `F/practice-log.md`, real fault 1).
 
 ## Single point of failure that is left
 Mac 4 is now **both the edge and Backend B** (Pranav's Mac 2 is absent). That is shared fate:

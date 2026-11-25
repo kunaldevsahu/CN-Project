@@ -1,0 +1,14 @@
+# Ext E · standby edge DOWN on mac3
+# Date:      2026-11-25 15:36:34 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/E-standby.sh down)
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+## Stop nginx on mac3
+[mac3]$ sudo -n /opt/homebrew/bin/nginx -s quit
+no nginx master process on mac3
+$ nc -vz -G 2 10.7.3.175 443   (from this Mac)
+nc: connectx to 10.7.3.175 port 443 (tcp) failed: Connection refused
+## DNS must not point at it (both servers):
+  @10.7.17.233: 10.7.30.71
+  @10.7.3.175: 10.7.30.71

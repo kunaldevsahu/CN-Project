@@ -1,0 +1,18 @@
+# Ext E · 08 what mac1's capture shows (pktap = en0 + lo0: mac1 asks ITSELF for DNS, over loopback)
+# Date:      2026-11-25 15:39:19 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/E-cutover.sh --analyze)
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Cutover 15:34:24.049, restore 15:35:37.336 (Mac 4 clock; mac1's clock is within ~0.2 s)
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+## Lookups made by mac1's OWN resolver (mDNSResponder). Between two lines every request used the cached answer.
+  15:34:06.202  asked 10.7.17.233 -> 10.7.30.71   first lookup after the cache flush
+  15:34:43.953  asked 10.7.17.233 -> 10.7.3.175   37.75 s after the previous lookup
+  15:35:21.604  asked 10.7.17.233 -> 10.7.3.175   37.65 s after the previous lookup
+  15:35:59.333  asked 10.7.17.233 -> 10.7.30.71   37.73 s after the previous lookup
+
+Not listed: 8 lookups by OTHER hosts that mac1's dnsmasq answered meanwhile (mac3 as a client, the dig in set-record.sh).
+
+## TCP connections (SYN) from mac1 to each edge on 443
+  10.7.30.71   51 connections   first 15:34:06.030   last 15:36:25.252
+  10.7.3.175   55 connections   first 15:34:45.101   last 15:35:59.333

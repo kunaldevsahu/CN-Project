@@ -1,0 +1,89 @@
+# Ext E · 04 client loop on mac1 during the cutover (no manual flush during the loop)
+# Date:      2026-11-25 15:34:04 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/E-cutover.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# server = answer of DNS server 10.7.17.233 right now (dig over TCP, no cache); curl-> = IP curl actually connected to (OS cache)
+# Record change app.team1.test -> 10.7.3.175 at ~t+20s (see 03-events.txt / 05-set-record-to-standby.txt)
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+[mac1]$ t0=$(date +%s); end=$((SECONDS+90)); i=0
+while [ $SECONDS -lt $end ]; do i=$((i+1))
+  srv=$(dig +tcp +short +time=1 +tries=1 @10.7.17.233 $NAME 2>/dev/null | grep -E '^[0-9.]+$' | head -1)
+  h=$(curl -s -D - -o /dev/null --max-time 5 -w 'IP=%{remote_ip} CODE=%{http_code}' https://$NAME/api/status)
+  ip=$(echo "$h" | sed -n 's/.*IP=\([0-9.]*\).*/\1/p'); code=$(echo "$h" | sed -n 's/.*CODE=\([0-9]*\).*/\1/p')
+  flag=""; [ -n "$srv" ] && [ -n "$ip" ] && [ "$srv" != "$ip" ] && flag="  <- OS cache still has the old IP"
+  printf '%s  t+%-3s server=%-11s curl->%-11s http=%-3s x-edge=%-13s x-backend=%-2s%s\n' "$(tsm)" $(($(date +%s)-t0)) "${srv:--}" "${ip:--}" "${code:--}" "$(echo "$h" | hv x-edge)" "$(echo "$h" | hv x-backend)" "$flag"
+  sleep 1
+done
+15:34:06.289  t+0   server=10.7.30.71  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B 
+15:34:07.807  t+1   server=10.7.30.71  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=A 
+15:34:09.177  t+3   server=10.7.30.71  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B 
+15:34:10.512  t+4   server=10.7.30.71  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=A 
+15:34:12.023  t+6   server=10.7.30.71  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B 
+15:34:13.445  t+7   server=10.7.30.71  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=A 
+15:34:14.615  t+8   server=10.7.30.71  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B 
+15:34:15.933  t+9   server=10.7.30.71  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=A 
+15:34:17.082  t+11  server=10.7.30.71  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B 
+15:34:18.308  t+12  server=10.7.30.71  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=A 
+15:34:19.637  t+13  server=10.7.30.71  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B 
+15:34:20.815  t+14  server=10.7.30.71  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=A 
+15:34:21.976  t+15  server=10.7.30.71  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B 
+15:34:24.004  t+18  server=10.7.30.71  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=A 
+15:34:25.154  t+19  server=10.7.30.71  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B 
+15:34:26.586  t+20  server=10.7.3.175  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=A   <- OS cache still has the old IP
+15:34:27.996  t+22  server=10.7.3.175  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B   <- OS cache still has the old IP
+15:34:29.172  t+23  server=10.7.3.175  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B   <- OS cache still has the old IP
+15:34:30.345  t+24  server=10.7.3.175  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B   <- OS cache still has the old IP
+15:34:31.680  t+25  server=10.7.3.175  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B   <- OS cache still has the old IP
+15:34:32.850  t+26  server=10.7.3.175  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=A   <- OS cache still has the old IP
+15:34:34.040  t+28  server=10.7.3.175  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B   <- OS cache still has the old IP
+15:34:35.421  t+29  server=10.7.3.175  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=A   <- OS cache still has the old IP
+15:34:36.630  t+30  server=10.7.3.175  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B   <- OS cache still has the old IP
+15:34:37.963  t+31  server=10.7.3.175  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=A   <- OS cache still has the old IP
+15:34:39.156  t+33  server=10.7.3.175  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B   <- OS cache still has the old IP
+15:34:40.584  t+34  server=10.7.3.175  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=A   <- OS cache still has the old IP
+15:34:41.729  t+35  server=10.7.3.175  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B   <- OS cache still has the old IP
+15:34:42.883  t+36  server=10.7.3.175  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=A   <- OS cache still has the old IP
+15:34:44.030  t+38  server=10.7.3.175  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B   <- OS cache still has the old IP
+15:34:45.324  t+39  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:34:46.463  t+40  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:34:47.675  t+41  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:34:49.010  t+43  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:34:50.169  t+44  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:34:51.342  t+45  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:34:52.691  t+46  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:34:53.827  t+47  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:34:55.309  t+49  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:34:56.484  t+50  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:34:57.635  t+51  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:34:58.927  t+52  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:35:00.081  t+54  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:35:01.218  t+55  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:35:02.624  t+56  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:35:03.807  t+57  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:35:05.270  t+59  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:35:06.423  t+60  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:35:07.581  t+61  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:35:08.954  t+62  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:35:10.129  t+64  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:35:11.288  t+65  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:35:12.632  t+66  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:35:13.907  t+67  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:35:15.345  t+69  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:35:16.554  t+70  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:35:17.856  t+71  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:35:19.001  t+73  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:35:20.534  t+74  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:35:21.678  t+75  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:35:22.822  t+76  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:35:24.124  t+78  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:35:25.370  t+79  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:35:26.886  t+80  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:35:28.105  t+82  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:35:29.464  t+83  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:35:30.936  t+84  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:35:32.071  t+86  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:35:33.256  t+87  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+15:35:34.380  t+88  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+15:35:36.226  t+90  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+

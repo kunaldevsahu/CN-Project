@@ -1,0 +1,30 @@
+# Ext E · 10 summary (numbers from 04/06/08/09/12)
+# Date:      2026-11-25 15:39:22 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/E-cutover.sh --analyze)
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# TTL of the record: 30 s (local-ttl=30 on both DNS servers)
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+## Cutover seen from the client
+  requests: 71   non-200: 0
+  record changed (Mac 4 clock):         15:34:24.049
+  DNS server answered the NEW IP from:  15:34:26.586
+  curl connected to the NEW edge from:  15:34:45.324  = 21.3 s after the change
+  requests that still went to the OLD edge after the server had changed: 15 (all 200: the old edge was still up)
+## Restore (record back, NO flush, old/standby edge kept up meanwhile)
+  requests: 33   non-200: 0   record restored 15:35:37.336, client back on 10.7.30.71 from 15:36:00.682 = 23.3 s later
+## mac3 as a second client (06-mac3-as-client.txt)
+  15:34:18.914  OS resolver: 10.7.30.71   curl -> 10.7.30.71  http=200  x-edge=mac4-primary
+  15:34:29.230  OS resolver: 10.7.30.71   curl -> 10.7.30.71  http=200  x-edge=mac4-primary
+  15:34:30.643  OS resolver: 10.7.3.175   curl -> 10.7.3.175  http=200  x-edge=mac3-standby
+  -> before the change: old edge; after the change WITHOUT flush: still the old edge (cache); after a flush: new edge at once
+## The edges' own logs (09-edge-logs.txt)
+  last request on mac4-primary:  19.9 s after the cutover
+  first request on mac3-standby: 21.2 s after the cutover
+## Why it took that long: mac1's OWN DNS lookups (08-pcap-summary.txt)
+  the answer mac1 had cached at the change was fetched at 15:34:06.202, 17.8 s BEFORE the change (10.7.30.71)
+  mac1 looked the name up again only at 15:34:43.953, 37.75 s after that fetch (10.7.3.175)
+  time between mac1 lookups during the whole test: 37.75 37.65 37.73 s
+  => the TTL is 30 s, but macOS kept each cached answer ~7.7 s longer before asking again. So after a record change
+     a client like mac1 can stay on the old edge for up to ~38 s here (0 s if its cache was about to expire).
+     The old edge must stay up at least that long: production waits a few TTLs before switching the old one off.

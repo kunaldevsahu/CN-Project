@@ -35,6 +35,20 @@ Scripts live in `scripts/phase2/` and are re-run live on demo day. Main client =
 | `C/07-rollback.txt` | Anchor flushed, token released, pf left as it was (mac3 off, Mac 4 on); nc works again | C |
 | `C/08-before-after-diff.txt` | Empty diffs: main ruleset, anchor, Enabled/Disabled state, `/etc/pf.conf` | C |
 | `C/09-notes.md` | Results table + viva points (timeout vs refused, BPF before pf, token, keep-state caveat) | C |
+| `E/01-make-standby-cert.txt` | Standby cert: same SANs + issuer, different serial (…D527 vs …D526) and key | E |
+| `E/02-standby-up.txt` | Standby nginx on mac3 (root, see F fault 1) checked from mac1 with `--resolve`: trusted, `x-edge: mac3-standby`, A/B | E |
+| `E/03-events.txt` | Timeline (ms): preflight, flush, capture, CUTOVER 15:34:24, RESTORE 15:35:37, standby stopped | E |
+| `E/04-client-loop-cutover.txt` | mac1, 90 s: server answer vs IP curl used; old edge for 21.3 s after the change, then mac3-standby; 71/71 × 200 | E, B |
+| `E/05-set-record-to-standby.txt` | Both DNS servers changed in the same second, both answer 10.7.3.175 | E, B |
+| `E/06-mac3-as-client.txt` | Second client: cached → old edge; flush → new edge at once | E, B |
+| `E/07-mac1-dns-443.pcap` | pktap (en0+lo0) on mac1: its own DNS lookups + TCP to each edge | E, B |
+| `E/08-pcap-summary.txt` | mac1's own lookups every ~37.7 s (TTL 30); connections per edge | E, B |
+| `E/09-edge-logs.txt` | Requests per 5 s on each edge: Mac 4 quiet after 19.9 s, mac3 from 21.2 s | E |
+| `E/10-summary.txt` | All numbers: 0 failures, 21.3 s switch, 23.3 s back, cache explanation | E, B |
+| `E/11-restore-set-record.txt`, `E/12-client-loop-restore.txt` | Record back to 10.7.30.71; mac1 back on mac4-primary after 23.3 s without a flush | E, B |
+| `E/13-standby-down.txt` | Standby stopped only after the restore; :443 refused; DNS no longer points at it | E |
+| `E/14-notes.md` | Results table + viva points (gradual switch, ~38 s cache on macOS, production order, own key/same CA) | E |
+| `F/practice-log.md` | Real faults: Local Network privacy blocking nginx ("No route to host", no packet sent); ssh hang | F |
 
 ---
 
