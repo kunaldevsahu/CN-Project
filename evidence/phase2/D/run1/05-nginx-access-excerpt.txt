@@ -1,0 +1,61 @@
+# Ext D · 05 nginx per-request log (team1-access.log) during the test
+# Date:      2026-11-25 15:10:21 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/D-failover.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# $ tail -n +111 /opt/homebrew/var/log/nginx/team1-access.log
+# Lines with two upstreams = nginx retried the request on the other backend
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+2026-11-25T15:09:17+05:30 client=10.7.17.233 "GET / HTTP/2.0" status=200 upstream=10.7.3.175:3001 ustatus=200 urt=0.131
+2026-11-25T15:09:18+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.012
+2026-11-25T15:09:19+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=10.7.3.175:3001 ustatus=200 urt=0.051
+2026-11-25T15:09:20+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.001
+2026-11-25T15:09:21+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=10.7.3.175:3001 ustatus=200 urt=0.052
+2026-11-25T15:09:22+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.004
+2026-11-25T15:09:23+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=10.7.3.175:3001 ustatus=200 urt=0.011
+2026-11-25T15:09:24+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.002
+2026-11-25T15:09:26+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=10.7.3.175:3001 ustatus=200 urt=0.016
+2026-11-25T15:09:27+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.002
+2026-11-25T15:09:29+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=10.7.3.175:3001 ustatus=200 urt=0.448
+2026-11-25T15:09:30+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.002
+2026-11-25T15:09:31+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=10.7.3.175:3001 ustatus=200 urt=0.279
+2026-11-25T15:09:32+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.002
+2026-11-25T15:09:33+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=10.7.3.175:3001, 127.0.0.1:3002 ustatus=502, 200 urt=0.487, 0.002
+2026-11-25T15:09:35+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.001
+2026-11-25T15:09:36+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=10.7.3.175:3001, 127.0.0.1:3002 ustatus=502, 200 urt=0.404, 0.002
+2026-11-25T15:09:37+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.002
+2026-11-25T15:09:38+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.001
+2026-11-25T15:09:39+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.001
+2026-11-25T15:09:40+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.002
+2026-11-25T15:09:41+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.002
+2026-11-25T15:09:42+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.001
+2026-11-25T15:09:44+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=10.7.3.175:3001, 127.0.0.1:3002 ustatus=502, 200 urt=0.850, 0.003
+2026-11-25T15:09:45+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.001
+2026-11-25T15:09:46+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.001
+2026-11-25T15:09:47+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.003
+2026-11-25T15:09:48+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.001
+2026-11-25T15:09:49+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.002
+2026-11-25T15:09:50+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.002
+2026-11-25T15:09:52+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=10.7.3.175:3001, 127.0.0.1:3002 ustatus=502, 200 urt=0.844, 0.001
+2026-11-25T15:09:53+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.001
+2026-11-25T15:09:54+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.001
+2026-11-25T15:09:56+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.003
+2026-11-25T15:09:56+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.001
+2026-11-25T15:09:58+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.002
+2026-11-25T15:09:59+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=10.7.3.175:3001 ustatus=200 urt=0.487
+2026-11-25T15:10:01+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.002
+2026-11-25T15:10:03+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=10.7.3.175:3001 ustatus=200 urt=0.011
+2026-11-25T15:10:04+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.003
+2026-11-25T15:10:05+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=10.7.3.175:3001 ustatus=200 urt=0.234
+2026-11-25T15:10:05+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.003
+2026-11-25T15:10:07+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=10.7.3.175:3001 ustatus=200 urt=0.267
+2026-11-25T15:10:08+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.001
+2026-11-25T15:10:09+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=10.7.3.175:3001 ustatus=200 urt=0.019
+2026-11-25T15:10:10+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.002
+2026-11-25T15:10:11+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=10.7.3.175:3001 ustatus=200 urt=0.020
+2026-11-25T15:10:12+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.001
+2026-11-25T15:10:13+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=10.7.3.175:3001 ustatus=200 urt=0.369
+2026-11-25T15:10:13+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.001
+2026-11-25T15:10:15+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=10.7.3.175:3001 ustatus=200 urt=0.374
+2026-11-25T15:10:16+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=127.0.0.1:3002 ustatus=200 urt=0.000
+2026-11-25T15:10:17+05:30 client=10.7.17.233 "GET /api/status HTTP/2.0" status=200 upstream=10.7.3.175:3001 ustatus=200 urt=0.017

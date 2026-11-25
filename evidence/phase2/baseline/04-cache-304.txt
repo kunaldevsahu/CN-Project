@@ -1,0 +1,42 @@
+# Baseline · Caching headers (Cache-Control, ETag) and a 304 with If-None-Match
+# Date:      2026-11-25 15:04:56 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/baseline.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+[mac1]$ curl -sI https://app.team1.test/api/status | grep -iE '^HTTP|^cache-control|^etag|^x-backend'
+HTTP/2 200 
+x-backend: A
+cache-control: no-store
+etag: W/"3f-AUdGUSB26/KcyOEAY9bUJPjDEcY"
+
+[mac1]$ curl -sI https://app.team1.test/api/cached | grep -iE '^HTTP|^cache-control|^etag|^x-backend|^content-length'
+HTTP/2 200 
+content-length: 49
+x-backend: A
+cache-control: public, max-age=60
+etag: W/"31-BhpixH3upRuqs+uGPrcnwzO1ql0"
+
+## Same ETag from both backends (same body), so a 304 works whichever backend answers
+[mac1]$ for i in 1 2 3 4; do h=$(curl -sI https://$NAME/api/cached); printf "%s  x-backend=%s  etag=%s\n" "$(date +%T)" "$(echo "$h" | hv x-backend)" "$(echo "$h" | hv etag)"; done
+15:05:01  x-backend=A  etag=W/"31-BhpixH3upRuqs+uGPrcnwzO1ql0"
+15:05:01  x-backend=B  etag=W/"31-BhpixH3upRuqs+uGPrcnwzO1ql0"
+15:05:01  x-backend=A  etag=W/"31-BhpixH3upRuqs+uGPrcnwzO1ql0"
+15:05:02  x-backend=B  etag=W/"31-BhpixH3upRuqs+uGPrcnwzO1ql0"
+
+## Conditional request: send the ETag back -> 304 Not Modified, no body
+[mac1]$ e=$(curl -sI https://$NAME/api/cached | hv etag); echo "ETag from first response: $e"
+for i in 1 2; do echo "$(date +%T)  curl -sI -H \"If-None-Match: $e\" https://$NAME/api/cached"; curl -sI -H "If-None-Match: $e" https://$NAME/api/cached | grep -iE "^HTTP|^etag|^x-backend|^content-length"; done
+echo "$(date +%T)  same request with a wrong ETag -> full 200"; curl -sI -H "If-None-Match: \"nope\"" https://$NAME/api/cached | grep -iE "^HTTP"
+ETag from first response: W/"31-BhpixH3upRuqs+uGPrcnwzO1ql0"
+15:05:04  curl -sI -H "If-None-Match: W/"31-BhpixH3upRuqs+uGPrcnwzO1ql0"" https://app.team1.test/api/cached
+HTTP/2 304 
+x-backend: A
+etag: W/"31-BhpixH3upRuqs+uGPrcnwzO1ql0"
+15:05:05  curl -sI -H "If-None-Match: W/"31-BhpixH3upRuqs+uGPrcnwzO1ql0"" https://app.team1.test/api/cached
+HTTP/2 304 
+x-backend: B
+etag: W/"31-BhpixH3upRuqs+uGPrcnwzO1ql0"
+15:05:05  same request with a wrong ETag -> full 200
+HTTP/2 200 
+

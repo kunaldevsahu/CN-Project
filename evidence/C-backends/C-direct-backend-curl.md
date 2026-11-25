@@ -1,6 +1,6 @@
 # C · Backend evidence (Task C) — captured 2026-10-02
 
-Kevish's Mac (the edge, 10.7.21.121) reaching each backend directly across the LAN:
+Pranav's Mac (the edge, 10.7.21.121) reaching each backend directly across the LAN:
 
 ```
 curl -i http://10.7.18.211:3001/api/status
@@ -55,4 +55,4 @@ Backend A listening on 0.0.0.0:3001
 2026-10-02T13:20:33.886Z  from=10.7.21.121  GET /api/status
 2026-10-02T13:20:34.266Z  from=10.7.21.121  GET /api/status
 ```
-The source is 10.7.21.121 (Kevish's nginx), never the client's 10.7.16.48: the backend only talks to the reverse proxy.
+The source is 10.7.21.121 (Pranav's nginx), never the client's 10.7.16.48: the backend only talks to the reverse proxy.

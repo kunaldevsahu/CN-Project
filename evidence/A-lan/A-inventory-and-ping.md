@@ -4,7 +4,7 @@
 | Role | Member | IPv4 | Subnet mask | Prefix | Gateway | Interface | MAC |
 |---|---|---|---|---|---|---|---|
 | Mac 1: DNS + client | Vaibhav | 10.7.16.0 | 255.255.224.0 | /19 | 10.7.0.1 | en0 | 80:47:15:df:87:98 |
-| Mac 2: Edge (nginx) | Kevish | 10.7.21.121 | 255.255.224.0 | /19 | 10.7.0.1 | en0 | ba:53:b8:ee:a3:2f |
+| Mac 2: Edge (nginx) | Pranav | 10.7.21.121 | 255.255.224.0 | /19 | 10.7.0.1 | en0 | ba:53:b8:ee:a3:2f |
 | Mac 3: Backend A | Himanshu | 10.7.18.211 | 255.255.224.0 | /19 | 10.7.0.1 | en0 | 36:f5:7a:81:ae:5e |
 | Mac 4: Backend B + client | Kunal | 10.7.16.48 | 255.255.224.0 | /19 | 10.7.0.1 | en0 | f2:e2:90:9b:fe:dd |
 
@@ -18,13 +18,13 @@ ifconfig en0 | grep ether
 
 ## Raw outputs (subnet mask / gateway / MAC)
 ```
-Kevish:   255.255.224.0 | gateway: 10.7.0.1 | ether ba:53:b8:ee:a3:2f
+Pranav:   255.255.224.0 | gateway: 10.7.0.1 | ether ba:53:b8:ee:a3:2f
 Vaibhav:  255.255.224.0 | gateway: 10.7.0.1 | ether 80:47:15:df:87:98
 Himanshu: 255.255.224.0 | gateway: 10.7.0.1 | ether 36:f5:7a:81:ae:5e
 Kunal:    255.255.224.0 | gateway: 10.7.0.1 | ether f2:e2:90:9b:fe:dd
 ```
 
-## Ping from Kevish's Mac (10.7.21.121) to the other three
+## Ping from Pranav's Mac (10.7.21.121) to the other three
 ```
 PING 10.7.16.0 (10.7.16.0): 56 data bytes
 64 bytes from 10.7.16.0: icmp_seq=0 ttl=64 time=48.887 ms

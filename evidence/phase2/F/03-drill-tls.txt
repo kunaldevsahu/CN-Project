@@ -1,0 +1,121 @@
+# Ext F · Drill TLS: edge serves a certificate for the wrong name
+# Date:      2026-11-25 16:04:41 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/F-drill.sh tls)
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Method: inject -> diagnose.sh on mac1 (first failing layer) -> confirm by hand -> fix -> diagnose.sh again
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+
+## INJECT (edge, Mac 4): serve a self-signed certificate for the WRONG name
+$ cp -p /opt/homebrew/etc/nginx/servers/team1.conf /Users/kunaldevsahu/backups/nginx-servers-team1.conf.20261125-160444 && echo 'backup: /Users/kunaldevsahu/backups/nginx-servers-team1.conf.20261125-160444'
+backup: /Users/kunaldevsahu/backups/nginx-servers-team1.conf.20261125-160444
+
+$ openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=wrong.test -keyout /opt/homebrew/etc/nginx/certs/drill-wrong.key -out /opt/homebrew/etc/nginx/certs/drill-wrong.crt 2>/dev/null && chmod 600 /opt/homebrew/etc/nginx/certs/drill-wrong.key && echo 'made drill-wrong.crt (CN=wrong.test, self-signed)'
+made drill-wrong.crt (CN=wrong.test, self-signed)
+
+$ sed -i '' 's|/certs/team1.crt;|/certs/drill-wrong.crt;|; s|/certs/team1.key;|/certs/drill-wrong.key;|' /opt/homebrew/etc/nginx/servers/team1.conf && grep -n 'ssl_certificate' /opt/homebrew/etc/nginx/servers/team1.conf
+49:    ssl_certificate     /opt/homebrew/etc/nginx/certs/drill-wrong.crt;
+50:    ssl_certificate_key /opt/homebrew/etc/nginx/certs/drill-wrong.key;
+
+$ /opt/homebrew/bin/nginx -t 2>&1 | tail -1 && /opt/homebrew/bin/nginx -s reload && echo reloaded
+nginx: configuration file /opt/homebrew/etc/nginx/nginx.conf test is successful
+reloaded
+
+16:04:45.328  fault injected
+
+## DIAGNOSE from mac1
+[mac1]$ bash scripts/diagnose.sh      (sent over ssh: ssh mac1 bash -s < scripts/diagnose.sh)
+Diagnosing https://app.team1.test/api/status  from Vaibhavs-MacBook-Air-5 (10.7.17.233)  16:04:46
+Expected edge: 10.7.30.71
+
+[0] Resolver configuration (which DNS servers this Mac asks)
+  OK   servers: 10.7.17.233 10.7.3.175
+
+[1] DNS (UDP 53): ask each server directly, then the OS resolver
+  OK   @10.7.17.233 -> 10.7.30.71  (TTL 30s)
+  OK   @10.7.3.175 -> 10.7.30.71  (TTL 30s)
+  OK   OS resolver (what curl/browser use) -> 10.7.30.71
+
+[2] IP reachability (ICMP) to 10.7.30.71
+  OK   ping 10.7.30.71 replies
+
+[3] TCP connect to 10.7.30.71:443 (the 3-way handshake)
+  OK   port 443 open
+
+[4] TLS handshake + certificate validation (no -k)
+         subject= /CN=wrong.test
+         issuer= /CN=wrong.test
+         notAfter=Nov 26 10:34:44 2026 GMT
+  FAIL certificate NOT trusted (curl 60)
+curl: (60) SSL certificate problem: self signed certificate
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+
+SUMMARY  DNS PASS  |  TCP PASS  |  TLS FAIL  |  HTTP SKIP
+First failing layer: TLS (certificate)
+  Next: name not in SAN? expired? CA missing from this Mac's System keychain? (security find-certificate -c 'Team1 Local Root CA' /Library/Keychains/System.keychain)
+(diagnose.sh exit code: 3)
+16:04:48.970  diagnosed (diagnose.sh run + read): 3.6 s after the injection
+
+## CONFIRM by hand: which certificate does the edge present?
+[mac1]$ echo | openssl s_client -connect 10.7.30.71:443 -servername app.team1.test 2>/dev/null | openssl x509 -noout -subject -issuer
+  (note: CA not yet trusted in this client's keychain -> curl gets --cacert rootCA.pem; still verified, NOT -k)
+subject= /CN=wrong.test
+issuer= /CN=wrong.test
+
+[mac1]$ curl -sS -o /dev/null https://app.team1.test/api/status 2>&1 | head -1
+  (note: CA not yet trusted in this client's keychain -> curl gets --cacert rootCA.pem; still verified, NOT -k)
+curl: (60) SSL certificate problem: self signed certificate
+
+
+## FIX: restore the config from the backup, test, reload, remove the drill cert
+$ cp -p /Users/kunaldevsahu/backups/nginx-servers-team1.conf.20261125-160444 /opt/homebrew/etc/nginx/servers/team1.conf && cmp /opt/homebrew/etc/nginx/servers/team1.conf /Users/kunaldevsahu/CN-Project/nginx/phase2/team1.conf && echo 'config restored (== repo copy)'
+config restored (== repo copy)
+
+$ /opt/homebrew/bin/nginx -t 2>&1 | tail -1 && /opt/homebrew/bin/nginx -s reload && rm -f /opt/homebrew/etc/nginx/certs/drill-wrong.crt /opt/homebrew/etc/nginx/certs/drill-wrong.key && echo 'reloaded, drill cert removed'
+nginx: configuration file /opt/homebrew/etc/nginx/nginx.conf test is successful
+reloaded, drill cert removed
+
+
+## VERIFY: diagnose.sh again
+[mac1]$ bash scripts/diagnose.sh      (sent over ssh: ssh mac1 bash -s < scripts/diagnose.sh)
+Diagnosing https://app.team1.test/api/status  from Vaibhavs-MacBook-Air-5 (10.7.17.233)  16:04:55
+Expected edge: 10.7.30.71
+
+[0] Resolver configuration (which DNS servers this Mac asks)
+  OK   servers: 10.7.17.233 10.7.3.175
+
+[1] DNS (UDP 53): ask each server directly, then the OS resolver
+  OK   @10.7.17.233 -> 10.7.30.71  (TTL 30s)
+  OK   @10.7.3.175 -> 10.7.30.71  (TTL 30s)
+  OK   OS resolver (what curl/browser use) -> 10.7.30.71
+
+[2] IP reachability (ICMP) to 10.7.30.71
+  OK   ping 10.7.30.71 replies
+
+[3] TCP connect to 10.7.30.71:443 (the 3-way handshake)
+  OK   port 443 open
+
+[4] TLS handshake + certificate validation (no -k)
+         subject= /CN=app.team1.test
+         issuer= /CN=Team1 Local Root CA 2026-11
+         notAfter=Dec 27 09:11:19 2027 GMT
+         SAN: DNS:app.team1.test, DNS:api.team1.test
+  OK   TLS handshake done, certificate trusted for app.team1.test
+
+[5] HTTP (application) through the edge
+         status=200  x-backend=B  x-edge=mac4-primary  x-upstream=127.0.0.1:3002  x-upstream-status=200  time_total=0.073825s
+         body: {"backend":"B","status":"ok","time":"2026-11-25T10:34:57.192Z"}
+  OK   application answered
+
+[6] Load balancing (6 requests, information only)
+         backends: A B A B A B
+  OK   both backends in rotation
+
+SUMMARY  DNS PASS  |  TCP PASS  |  TLS PASS  |  HTTP PASS
+All layers OK
+(diagnose.sh exit code: 0)
+16:05:00.592  restored and verified: 15.3 s after the injection

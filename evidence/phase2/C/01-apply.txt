@@ -1,0 +1,46 @@
+# Ext C · 01 isolation ON: pf anchor com.apple/team1 on mac3 (:3001) and Mac 4 (:3002)
+# Date:      2026-11-25 15:19:57 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/C-apply.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Allowed: mac3 :3001 <- 10.7.30.71 (edge) + lo0 ;  Mac 4 :3002 <- 10.7.3.175 (standby edge) + lo0 (edge uses 127.0.0.1)
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+## mac3 (Backend A)
+== Himanshus-MacBook-Pro 10.7.3.175   rules: firewall/team1-backendA.pf
+before-state saved: ~/team1-pf-backup/ + ~/backups/pf-{rules,info}-before.20261125-152001.txt
+pf enabled BEFORE: no   (Status: Disabled)
+$ sudo -n /sbin/pfctl -n -a com.apple/team1 -f ~/team1-pf-backup/loaded-rules.pf     # syntax check only
+$ sudo -n /sbin/pfctl -E                                                     # enable pf, take a reference token
+   No ALTQ support in kernel
+   ALTQ related functions disabled
+   pf enabled
+   Token : 6517515463236133313
+$ sudo -n /sbin/pfctl -a com.apple/team1 -f ~/team1-pf-backup/loaded-rules.pf
+No ALTQ support in kernel
+ALTQ related functions disabled
+$ sudo -n /sbin/pfctl -a com.apple/team1 -sr
+   pass in quick on lo0 all flags S/SA keep state
+   pass in quick inet proto tcp from 10.7.30.71 to any port = 3001 flags S/SA keep state
+   block drop in quick proto tcp from any to any port = 3001
+$ sudo -n /sbin/pfctl -si | grep Status
+   Status: Enabled for 0 days 00:00:00           Debug: Urgent
+
+## Mac 4 (Backend B, this Mac)
+== Kunals-MacBook-Pro-3 10.7.30.71   rules: firewall/team1-backendB.pf
+before-state saved: ~/team1-pf-backup/ + ~/backups/pf-{rules,info}-before.20261125-152002.txt
+pf enabled BEFORE: yes   (Status: Enabled)
+$ sudo -n /sbin/pfctl -n -a com.apple/team1 -f ~/team1-pf-backup/loaded-rules.pf     # syntax check only
+$ sudo -n /sbin/pfctl -E                                                     # enable pf, take a reference token
+   No ALTQ support in kernel
+   ALTQ related functions disabled
+   pf enabled
+   Token : 6029383013065027588
+$ sudo -n /sbin/pfctl -a com.apple/team1 -f ~/team1-pf-backup/loaded-rules.pf
+No ALTQ support in kernel
+ALTQ related functions disabled
+$ sudo -n /sbin/pfctl -a com.apple/team1 -sr
+   pass in quick on lo0 all flags S/SA keep state
+   pass in quick inet proto tcp from 10.7.3.175 to any port = 3002 flags S/SA keep state
+   block drop in quick proto tcp from any to any port = 3002
+$ sudo -n /sbin/pfctl -si | grep Status
+   Status: Enabled for 5 days 16:49:27           Debug: Urgent

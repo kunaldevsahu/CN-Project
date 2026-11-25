@@ -1,0 +1,33 @@
+# Ext E · 01 Standby edge certificate (same CA, own key) for mac3
+# Date: 2026-11-25 15:24:29 IST
+# Run on: Kunals-MacBook-Pro-3 10.7.30.71 (Mac 4 holds rootCA.key)
+# Command: bash certs/make-standby-cert.sh
+
+Certificate request self-signature ok
+subject=CN=app.team1.test
+team1-standby.crt: OK
+serial=16E73968502DF9F0317F36BB9BFFD679DFC7D527
+X509v3 Subject Alternative Name: 
+    DNS:app.team1.test, DNS:api.team1.test
+
+Primary cert serial (for comparison):
+serial=16E73968502DF9F0317F36BB9BFFD679DFC7D526
+AirDrop team1-standby.crt and team1-standby.key to Mac 3 only.
+
+## Primary vs standby: same names, same issuer, different serial and key
+certs/team1.crt:
+  subject=CN=app.team1.test
+  issuer=CN=Team1 Local Root CA 2026-11
+  serial=16E73968502DF9F0317F36BB9BFFD679DFC7D526
+  notAfter=Dec 27 09:11:19 2027 GMT
+  X509v3 Subject Alternative Name: 
+      DNS:app.team1.test, DNS:api.team1.test
+  public key sha256: bb4ade3d3a5bfa6b00f8d558cca85f802f92963489b581b765f82a50262c2765
+certs/team1-standby.crt:
+  subject=CN=app.team1.test
+  issuer=CN=Team1 Local Root CA 2026-11
+  serial=16E73968502DF9F0317F36BB9BFFD679DFC7D527
+  notAfter=Dec 27 09:54:29 2027 GMT
+  X509v3 Subject Alternative Name: 
+      DNS:app.team1.test, DNS:api.team1.test
+  public key sha256: 423d74b41846108198e5aa3409e85771da78cd63a9b7b513eb7db270a0c4cf59

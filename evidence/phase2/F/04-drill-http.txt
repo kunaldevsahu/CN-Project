@@ -1,0 +1,119 @@
+# Ext F · Drill HTTP: both backends down
+# Date:      2026-11-25 16:05:00 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/F-drill.sh http)
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Method: inject -> diagnose.sh on mac1 (first failing layer) -> confirm by hand -> fix -> diagnose.sh again
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+
+## INJECT: stop both backends
+kill -INT 67608   (/usr/local/bin/node server.js, = Ctrl+C)
+Backend A stopped: nothing listens on :3001
+kill -INT 40972   (/opt/homebrew/bin/node server.js, = Ctrl+C)
+Backend B stopped: nothing listens on :3002
+16:05:04.269  fault injected
+
+## DIAGNOSE from mac1
+[mac1]$ bash scripts/diagnose.sh      (sent over ssh: ssh mac1 bash -s < scripts/diagnose.sh)
+Diagnosing https://app.team1.test/api/status  from Vaibhavs-MacBook-Air-5 (10.7.17.233)  16:05:05
+Expected edge: 10.7.30.71
+
+[0] Resolver configuration (which DNS servers this Mac asks)
+  OK   servers: 10.7.17.233 10.7.3.175
+
+[1] DNS (UDP 53): ask each server directly, then the OS resolver
+  OK   @10.7.17.233 -> 10.7.30.71  (TTL 30s)
+  OK   @10.7.3.175 -> 10.7.30.71  (TTL 30s)
+  OK   OS resolver (what curl/browser use) -> 10.7.30.71
+
+[2] IP reachability (ICMP) to 10.7.30.71
+  OK   ping 10.7.30.71 replies
+
+[3] TCP connect to 10.7.30.71:443 (the 3-way handshake)
+  OK   port 443 open
+
+[4] TLS handshake + certificate validation (no -k)
+         subject= /CN=app.team1.test
+         issuer= /CN=Team1 Local Root CA 2026-11
+         notAfter=Dec 27 09:11:19 2027 GMT
+         SAN: DNS:app.team1.test, DNS:api.team1.test
+  OK   TLS handshake done, certificate trusted for app.team1.test
+
+[5] HTTP (application) through the edge
+         status=502  x-backend=  x-edge=mac4-primary  x-upstream=127.0.0.1:3002, 10.7.3.175:3001  x-upstream-status=502, 502  time_total=1.942686s
+         body: <html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.31.9</center>
+</body>
+</html>
+  FAIL 502 Bad Gateway: edge OK, it could not get a valid answer from ANY backend (refused/reset)
+
+SUMMARY  DNS PASS  |  TCP PASS  |  TLS PASS  |  HTTP FAIL
+First failing layer: HTTP: edge -> backend (502)
+  Next: on the edge: tail error.log; curl each backend from the edge; backends running? bound to 0.0.0.0? pf rule allows the edge's IP?
+(diagnose.sh exit code: 4)
+16:05:10.981  diagnosed (diagnose.sh run + read): 6.7 s after the injection
+
+## CONFIRM on the edge: diagnose-edge.sh (edge -> each backend) and the error log
+== Edge -> each backend directly (this is the hop the client cannot see) ==
+  10.7.3.175:3001  tcp: nc: connectx to 10.7.3.175 port 3001 (tcp) failed: Connection refused
+  10.7.3.175:3001  http: 000 in 0.877519s
+  10.7.30.71:3002  tcp: nc: connectx to 10.7.30.71 port 3002 (tcp) failed: Connection refused
+  10.7.30.71:3002  http: 000 in 0.001791s
+  (refused = host up, backend process not running / bound to 127.0.0.1;
+   timed out = host asleep, wrong IP, or a pf rule dropping this edge's IP)
+
+new error.log lines:
+2026/11/25 16:05:08 [error] 43262#0: *35 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.17.233, upstream: "ht
+2026/11/25 16:05:08 [error] 43262#0: *35 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.17.233, upstream: "ht
+2026/11/25 16:05:09 [error] 43262#0: *38 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.17.233, upstream: "ht
+2026/11/25 16:05:10 [error] 43262#0: *38 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.17.233, upstream: "ht
+
+## FIX: start both backends
+BACKEND=A PORT=3001 nohup /usr/local/bin/node server.js >> ~/team1-logs/backendA.log 2>&1 &
+Backend A listening again: node pid 67822 *:3001
+BACKEND=B PORT=3002 nohup /opt/homebrew/bin/node server.js >> ~/team1-logs/backendB.log 2>&1 &
+Backend B listening again: node pid 43586 *:3002
+(waited 6 s: fail_timeout=5s)
+
+## VERIFY: diagnose.sh again
+[mac1]$ bash scripts/diagnose.sh      (sent over ssh: ssh mac1 bash -s < scripts/diagnose.sh)
+Diagnosing https://app.team1.test/api/status  from Vaibhavs-MacBook-Air-5 (10.7.17.233)  16:05:25
+Expected edge: 10.7.30.71
+
+[0] Resolver configuration (which DNS servers this Mac asks)
+  OK   servers: 10.7.17.233 10.7.3.175
+
+[1] DNS (UDP 53): ask each server directly, then the OS resolver
+  OK   @10.7.17.233 -> 10.7.30.71  (TTL 30s)
+  OK   @10.7.3.175 -> 10.7.30.71  (TTL 30s)
+  OK   OS resolver (what curl/browser use) -> 10.7.30.71
+
+[2] IP reachability (ICMP) to 10.7.30.71
+  OK   ping 10.7.30.71 replies
+
+[3] TCP connect to 10.7.30.71:443 (the 3-way handshake)
+  OK   port 443 open
+
+[4] TLS handshake + certificate validation (no -k)
+         subject= /CN=app.team1.test
+         issuer= /CN=Team1 Local Root CA 2026-11
+         notAfter=Dec 27 09:11:19 2027 GMT
+         SAN: DNS:app.team1.test, DNS:api.team1.test
+  OK   TLS handshake done, certificate trusted for app.team1.test
+
+[5] HTTP (application) through the edge
+         status=200  x-backend=B  x-edge=mac4-primary  x-upstream=127.0.0.1:3002  x-upstream-status=200  time_total=0.688171s
+         body: {"backend":"B","status":"ok","time":"2026-11-25T10:35:28.436Z"}
+  OK   application answered
+
+[6] Load balancing (6 requests, information only)
+         backends: A B A B A B
+  OK   both backends in rotation
+
+SUMMARY  DNS PASS  |  TCP PASS  |  TLS PASS  |  HTTP PASS
+All layers OK
+(diagnose.sh exit code: 0)
+16:05:32.052  restored and verified: 27.8 s after the injection

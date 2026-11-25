@@ -1,0 +1,42 @@
+# Ext E · standby edge UP on mac3 and checked from mac1 before any DNS change
+# Date:      2026-11-25 15:30:47 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/E-standby.sh up)
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+## Start nginx on mac3
+[mac3]$ sudo -n /opt/homebrew/bin/nginx -t
+nginx: the configuration file /opt/homebrew/etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /opt/homebrew/etc/nginx/nginx.conf test is successful
+[mac3]$ sudo -n /opt/homebrew/bin/nginx </dev/null >/dev/null 2>&1    # root: see header; detach from ssh
+root   65807 nginx: master process /opt/homebrew/bin/nginx
+nobody 65808 nginx: worker process
+COMMAND   PID   USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
+nginx   65807   root    9u  IPv4 0xc9310b83f599f51d      0t0  TCP *:443 (LISTEN)
+
+## Standby checked from mac1 with --resolve (DNS untouched), system trust only (no -k)
+[mac1]$ curl -sv --resolve app.team1.test:443:10.7.3.175 https://app.team1.test/api/status -o /dev/null 2>&1 | grep -iE '^\* (Connected|SSL connection)|^\*  +(subject|issuer|SSL certificate verify)|^< (HTTP|x-edge|x-backend)'
+* Connected to app.team1.test (10.7.3.175) port 443
+* SSL connection using TLSv1.3 / AEAD-CHACHA20-POLY1305-SHA256 / [blank] / UNDEF
+*  subject: CN=app.team1.test
+*  subjectAltName: host "app.team1.test" matched cert's "app.team1.test"
+*  issuer: CN=Team1 Local Root CA 2026-11
+*  SSL certificate verify ok.
+< HTTP/2 200 
+< x-backend: A
+< x-edge: mac3-standby
+
+## Both edges present different certificates (serial) from the same CA
+[mac1]$ for ip in 10.7.30.71 10.7.3.175; do echo "$ip: $(echo | openssl s_client -connect $ip:443 -servername app.team1.test 2>/dev/null | openssl x509 -noout -serial -issuer | tr '\n' ' ')"; done
+10.7.30.71: serial=16E73968502DF9F0317F36BB9BFFD679DFC7D526 issuer= /CN=Team1 Local Root CA 2026-11 
+10.7.3.175: serial=16E73968502DF9F0317F36BB9BFFD679DFC7D527 issuer= /CN=Team1 Local Root CA 2026-11 
+
+## 6 requests to the standby: it load-balances over the SAME two backends
+[mac1]$ for i in 1 2 3 4 5 6; do h=$(curl -s -D - -o /dev/null -w "IP=%{remote_ip}" --resolve $NAME:443:$STANDBY_IP https://$NAME/api/status); printf "%s  #%s http=%s remote=%s x-edge=%s x-backend=%s x-upstream=%s\n" "$(tsm)" $i "$(echo "$h" | awk "NR==1{print \$2}")" "$(echo "$h" | sed -n "s/.*IP=//p")" "$(echo "$h" | hv x-edge)" "$(echo "$h" | hv x-backend)" "$(echo "$h" | hv x-upstream)"; sleep 0.3; done
+15:30:56.212  #1 http=200 remote=10.7.3.175 x-edge=mac3-standby x-backend=B x-upstream=10.7.30.71:3002
+15:30:56.787  #2 http=200 remote=10.7.3.175 x-edge=mac3-standby x-backend=A x-upstream=10.7.3.175:3001
+15:30:57.482  #3 http=200 remote=10.7.3.175 x-edge=mac3-standby x-backend=B x-upstream=10.7.30.71:3002
+15:30:58.007  #4 http=200 remote=10.7.3.175 x-edge=mac3-standby x-backend=A x-upstream=10.7.3.175:3001
+15:30:58.616  #5 http=200 remote=10.7.3.175 x-edge=mac3-standby x-backend=B x-upstream=10.7.30.71:3002
+15:30:59.315  #6 http=200 remote=10.7.3.175 x-edge=mac3-standby x-backend=A x-upstream=10.7.3.175:3001
+

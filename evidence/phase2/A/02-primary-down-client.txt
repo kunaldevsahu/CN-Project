@@ -1,0 +1,48 @@
+# Ext A · 02 primary DNS DOWN (dnsmasq stopped on mac1): the client still resolves via the backup
+# Date:      2026-11-25 15:45:46 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/A-backup-dns.sh )
+# Client:    mac3 = Himanshus-MacBook-Pro 10.7.3.175
+# Stopped at 15:45:42.381 (see 00-events.txt)
+# Every command is printed before its output: '$ ' = this Mac, '[mac3]$ ' = the client.
+
+[mac3]$ dig +nocmd @10.7.17.233 app.team1.test +time=2 +tries=1 2>&1 | grep -vE '^$|^;; global|^; <<>>'
+;; connection timed out; no servers could be reached
+
+## mac3 (cache flushed): plain dig tries 10.7.17.233 first, gets refused, uses 10.7.3.175
+cache flushed on Himanshus-MacBook-Pro
+[mac3]$ a=$(perl -MTime::HiRes=time -e "printf q(%.3f), time"); out=$(dig app.team1.test 2>&1); b=$(perl -MTime::HiRes=time -e "printf q(%.3f), time")
+echo "$out" | grep -E 'status:|^app\.team1\.test\.|SERVER:|Query time|communications error|connection refused|timed out|no servers'; echo "(dig took $(perl -e "printf q(%.2f), $b - $a") s)"
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 10858
+app.team1.test.		30	IN	A	10.7.30.71
+;; Query time: 4 msec
+;; SERVER: 10.7.3.175#53(10.7.3.175)
+(dig took 1.05 s)
+
+[mac3]$ dscacheutil -q host -a name app.team1.test | grep ip_address
+ip_address: 10.7.30.71
+
+[mac3]$ for i in 1 2 3 4; do h=$(curl -s -D - -o /dev/null -w "DNS=%{time_namelookup} TOTAL=%{time_total} IP=%{remote_ip}" https://$NAME/api/status); printf "%s  #%s http=%s ip=%s x-edge=%s x-backend=%s %s\n" "$(tsm)" $i "$(echo "$h" | awk "NR==1{print \$2}")" "$(echo "$h" | sed -n "s/.*IP=//p")" "$(echo "$h" | hv x-edge)" "$(echo "$h" | hv x-backend)" "$(echo "$h" | grep -o "DNS=[0-9.]* TOTAL=[0-9.]*")"; sleep 0.3; done
+15:45:57.190  #1 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=A DNS=0.004326 TOTAL=0.483673
+15:45:57.649  #2 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=B DNS=0.003430 TOTAL=0.060261
+15:45:58.094  #3 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=A DNS=0.004004 TOTAL=0.051457
+15:45:58.528  #4 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=B DNS=0.005984 TOTAL=0.048911
+
+## mac1, the main client, is affected too (it lists itself first): also falls back to the backup
+cache flushed on Vaibhavs-MacBook-Air-5
+[mac1]$ a=$(perl -MTime::HiRes=time -e "printf q(%.3f), time"); out=$(dig app.team1.test 2>&1); b=$(perl -MTime::HiRes=time -e "printf q(%.3f), time")
+echo "$out" | grep -E 'status:|^app\.team1\.test\.|SERVER:|Query time|communications error|connection refused|timed out|no servers'; echo "(dig took $(perl -e "printf q(%.2f), $b - $a") s)"
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 55257
+app.team1.test.		30	IN	A	10.7.30.71
+;; Query time: 12 msec
+;; SERVER: 10.7.3.175#53(10.7.3.175)
+(dig took 1.05 s)
+
+[mac1]$ dscacheutil -q host -a name app.team1.test | grep ip_address
+ip_address: 10.7.30.71
+
+[mac1]$ for i in 1 2 3 4; do h=$(curl -s -D - -o /dev/null -w "DNS=%{time_namelookup} TOTAL=%{time_total} IP=%{remote_ip}" https://$NAME/api/status); printf "%s  #%s http=%s ip=%s x-edge=%s x-backend=%s %s\n" "$(tsm)" $i "$(echo "$h" | awk "NR==1{print \$2}")" "$(echo "$h" | sed -n "s/.*IP=//p")" "$(echo "$h" | hv x-edge)" "$(echo "$h" | hv x-backend)" "$(echo "$h" | grep -o "DNS=[0-9.]* TOTAL=[0-9.]*")"; sleep 0.3; done
+15:46:03.848  #1 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=B DNS=0.003234 TOTAL=0.037743
+15:46:04.612  #2 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=A DNS=0.002717 TOTAL=0.383030
+15:46:05.049  #3 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=B DNS=0.003180 TOTAL=0.058244
+15:46:05.632  #4 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=A DNS=0.002913 TOTAL=0.200338
+

@@ -1,0 +1,40 @@
+# Baseline · DNS: plain dig from the client (TTL 30, which server answered)
+# Date:      2026-11-25 15:04:35 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/baseline.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+[mac1]$ networksetup -getdnsservers Wi-Fi
+10.7.17.233
+10.7.3.175
+
+[mac1]$ dig app.team1.test
+
+; <<>> DiG 9.10.6 <<>> app.team1.test
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 21503
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; QUESTION SECTION:
+;app.team1.test.			IN	A
+
+;; ANSWER SECTION:
+app.team1.test.		30	IN	A	10.7.30.71
+
+;; Query time: 0 msec
+;; SERVER: 10.7.17.233#53(10.7.17.233)
+;; WHEN: Wed Nov 25 15:04:37 IST 2026
+;; MSG SIZE  rcvd: 59
+
+
+[mac1]$ dig +nocmd api.team1.test +noall +answer
+api.team1.test.		30	IN	A	10.7.30.71
+
+[mac1]$ dscacheutil -q host -a name app.team1.test
+name: app.team1.test
+ip_address: 10.7.30.71
+
+

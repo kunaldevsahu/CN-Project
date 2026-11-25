@@ -1,0 +1,55 @@
+# Ext A · 07 do both DNS servers own the zone team1.test? (primary mac1 vs backup mac3)
+# Date:      2026-11-25 15:47:05 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/A-zone-check.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Probe name (not in team1.hosts): probe-1795601825.team1.test · capture on mac3 en0: DNS to the upstream servers only
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+## Config lines that decide it
+[mac1]$ grep -nE '^(local|no-hosts|addn-hosts|server|local-ttl|log-)' /opt/homebrew/etc/dnsmasq.conf
+15:server=10.5.7.1
+16:server=8.8.8.8
+20:local=/team1.test/
+23:no-hosts
+24:addn-hosts=/opt/homebrew/etc/team1.hosts
+27:local-ttl=30
+30:log-queries
+
+[mac3]$ grep -nE '^(local|no-hosts|addn-hosts|server|local-ttl|log-)' /opt/homebrew/etc/dnsmasq.conf
+5:server=10.5.7.1
+6:server=8.8.8.8
+7:local-ttl=30
+8:addn-hosts=/opt/homebrew/etc/team1.hosts
+
+## The same questions to both servers (asked from this Mac)
+$ dig @10.7.17.233 probe-1795601825.team1.test A
+   ;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 30699
+   ;; flags: qr rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 1
+   ; EDNS: version: 0, flags:; udp: 1232
+   ;; Query time: 201 msec
+$ dig @10.7.17.233 app.team1.test AAAA
+   ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 6884
+   ;; flags: qr rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 1
+   ; EDNS: version: 0, flags:; udp: 1232
+   ;; Query time: 6 msec
+$ dig @10.7.3.175 probe-1795601825.team1.test A
+   ;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 38475
+   ;; flags: qr rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 1
+   ; EDNS: version: 0, flags:; udp: 1232
+   ;; AUTHORITY SECTION:
+   .			86042	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. 2026112500 1800 900 604800 86400
+   ;; Query time: 86 msec
+$ dig @10.7.3.175 app.team1.test AAAA
+   ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 41846
+   ;; flags: qr rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 1
+   ; EDNS: version: 0, flags:; udp: 1232
+   ;; AUTHORITY SECTION:
+   .			86042	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. 2026112500 1800 900 604800 86400
+   ;; Query time: 172 msec
+
+## What mac3 sent to the INTERNET meanwhile (only team1.test names shown; capture evidence/phase2/A/08-mac3-upstream.pcap)
+   15:47:10.623036 IP 10.7.3.175.51804 > 8.8.8.8.53: 40788+ [1au] A? probe-1795601825.team1.test. (56)
+
+Reading: NXDOMAIN / empty answer with NO authority section = dnsmasq answered from its own zone (local=/team1.test/), nothing left the LAN (mac1).
+Authority = the ROOT zone's SOA (a.root-servers.net) = the question was forwarded to the internet (8.8.8.8, in the capture): internal names leak and the answer is slower (mac3).
+Fix: add local=/team1.test/ (and no-hosts) to mac3's dnsmasq.conf, as in dns/phase2/dnsmasq.conf.

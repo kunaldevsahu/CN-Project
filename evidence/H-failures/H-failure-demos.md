@@ -61,7 +61,7 @@ x-backend: B
 x-backend: B
 x-backend: B
 ```
-nginx error log on Kevish's Mac:
+nginx error log on Pranav's Mac:
 ```
 tail -n 5 $(brew --prefix)/var/log/nginx/error.log
 2026/10/02 16:36:58 [error] 6528#0: *11 upstream timed out (60: Operation timed out) while connecting to upstream, client: 10.7.16.48, server: app.team1.test, request: "HEAD /api/cached HTTP/2.0", upstream: "http://10.7.18.211:3001/api/cached", host: "app.team1.test"

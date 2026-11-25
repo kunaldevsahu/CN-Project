@@ -1,0 +1,39 @@
+# Ext E · 03 events: DNS cutover Mac 4 -> mac3 and back (this Mac's clock, ms)
+# Date:      2026-11-25 15:33:56 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/E-cutover.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Plan: 90s loop on mac1, record change at ~20s, restore + 45s loop, TTL 30 s
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+15:33:58.967  preflight: edge 10.7.30.71 from mac1: 200 mac4-primary
+15:34:00.450  preflight: edge 10.7.3.175 from mac1: 200 mac3-standby
+15:34:00.765  preflight: records: @10.7.17.233 10.7.30.71  @10.7.3.175 10.7.30.71
+15:34:02.819  cache flushed on Vaibhavs-MacBook-Air-5
+15:34:04.660  tcpdump on mac1: $ sudo -n /usr/sbin/tcpdump -i pktap,en0,lo0 -U -Z <user> -w ~/team1-logs/E-mac1.pcap 'port 53 or (tcp port 443 and (host 10.7.30.71 or host 10.7.3.175))'
+15:34:04.681  client loop started on mac1
+15:34:24.050  CUTOVER: set-record-both.sh app.team1.test 10.7.3.175 (mac1 + mac3 in parallel)
+                ↳ # Record change on BOTH DNS servers: app.team1.test -> 10.7.3.175
+                ↳ 15:34:24  sending to mac1 + mac3
+                ↳ 15:34:25  app.team1.test -> 10.7.3.175  (dnsmasq reloaded on Vaibhavs-MacBook-Air-5)
+                ↳ 15:34:25  app.team1.test -> 10.7.3.175  (dnsmasq reloaded on Himanshus-MacBook-Pro)
+                ↳ ## Both servers asked directly from Kunals-MacBook-Pro-3 (dig @server, no client cache involved)
+                ↳ 15:34:26  @10.7.17.233  app.team1.test. 30 IN A 10.7.3.175
+                ↳ 15:34:26  @10.7.17.233  api.team1.test. 30 IN A 10.7.3.175
+                ↳ 15:34:26  @10.7.3.175   app.team1.test. 30 IN A 10.7.3.175
+                ↳ 15:34:26  @10.7.3.175   api.team1.test. 30 IN A 10.7.3.175
+15:34:30.736  mac3-as-client demo done: 6 requests (see 06-mac3-as-client.txt)
+15:35:37.308  client loop finished
+15:35:37.337  RESTORE: set-record-both.sh app.team1.test 10.7.30.71
+                ↳ # Record change on BOTH DNS servers: app.team1.test -> 10.7.30.71
+                ↳ 15:35:37  sending to mac1 + mac3
+                ↳ 15:35:38  app.team1.test -> 10.7.30.71  (dnsmasq reloaded on Vaibhavs-MacBook-Air-5)
+                ↳ 15:35:38  app.team1.test -> 10.7.30.71  (dnsmasq reloaded on Himanshus-MacBook-Pro)
+                ↳ ## Both servers asked directly from Kunals-MacBook-Pro-3 (dig @server, no client cache involved)
+                ↳ 15:35:39  @10.7.17.233  app.team1.test. 30 IN A 10.7.30.71
+                ↳ 15:35:40  @10.7.17.233  api.team1.test. 30 IN A 10.7.30.71
+                ↳ 15:35:40  @10.7.3.175   app.team1.test. 30 IN A 10.7.30.71
+                ↳ 15:35:40  @10.7.3.175   api.team1.test. 30 IN A 10.7.30.71
+15:36:26.788  restore loop finished
+15:36:30.102  tcpdump stopped on mac1: 5976 packets captured -> evidence/phase2/E/07-mac1-dns-443.pcap
+15:36:38.774  standby stopped (13-standby-down.txt)
+15:36:41.470  final: mac1 -> 200 mac4-primary 10.7.30.71

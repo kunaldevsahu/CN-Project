@@ -1,0 +1,16 @@
+# ---- Extension C: service isolation for Backend B (Mac 4, Kunal, port 3002) ----
+# Loaded into the pf sub-anchor "com.apple/team1" by scripts/phase2/C-apply.sh (sudo -n /sbin/pfctl ... -f).
+# /etc/pf.conf is NOT edited; scripts/phase2/C-rollback.sh flushes the anchor and restores the original pf state.
+#
+# Phase 2: the edge runs on THIS Mac and reaches B via 127.0.0.1 (lo0, passed below).
+# Mac 3 (10.7.3.175) is allowed because of its standby edge role (Ext E), not because it is a client.
+# No "log" keyword: pflog0 does not exist on our Macs and creating it needs sudo ifconfig (not allowed).
+
+# Traffic from this Mac to itself (lo0) is always allowed
+pass in quick on lo0 all
+
+# Only the standby edge may open TCP connections to the backend port from the LAN
+pass in quick proto tcp from 10.7.3.175 to any port 3002
+
+# Everyone else is silently dropped (no RST), so a client sees a timeout, not "connection refused"
+block drop in quick proto tcp from any to any port 3002

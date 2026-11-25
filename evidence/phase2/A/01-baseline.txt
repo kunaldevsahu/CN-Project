@@ -1,0 +1,42 @@
+# Ext A · 01 baseline: both DNS servers up, the client uses the primary
+# Date:      2026-11-25 15:45:28 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/A-backup-dns.sh )
+# Client:    mac3 = Himanshus-MacBook-Pro 10.7.3.175
+# Every command is printed before its output: '$ ' = this Mac, '[mac3]$ ' = the client.
+
+## Which DNS servers mac3 asks, in order
+[mac3]$ scutil --dns | awk '/^resolver #1/{f=1} f&&/nameserver\[/{print} f&&/^$/{exit}'
+  nameserver[0] : 10.7.17.233
+  nameserver[1] : 10.7.3.175
+
+[mac3]$ sudo -n /opt/homebrew/bin/brew services list | grep dnsmasq
+dnsmasq started         root /Library/LaunchDaemons/sh.brew.dnsmasq.plist
+
+## Both servers answer the same record
+[mac3]$ dig +nocmd @10.7.17.233 app.team1.test +noall +answer +stats | grep -E 'IN[[:space:]]+A|SERVER'
+app.team1.test.		30	IN	A	10.7.30.71
+;; SERVER: 10.7.17.233#53(10.7.17.233)
+
+[mac3]$ dig +nocmd @10.7.3.175 app.team1.test +noall +answer +stats | grep -E 'IN[[:space:]]+A|SERVER'
+app.team1.test.		30	IN	A	10.7.30.71
+;; SERVER: 10.7.3.175#53(10.7.3.175)
+
+## The client (OS cache flushed first)
+cache flushed on Himanshus-MacBook-Pro
+[mac3]$ a=$(perl -MTime::HiRes=time -e "printf q(%.3f), time"); out=$(dig app.team1.test 2>&1); b=$(perl -MTime::HiRes=time -e "printf q(%.3f), time")
+echo "$out" | grep -E 'status:|^app\.team1\.test\.|SERVER:|Query time|communications error|connection refused|timed out|no servers'; echo "(dig took $(perl -e "printf q(%.2f), $b - $a") s)"
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 36307
+app.team1.test.		30	IN	A	10.7.30.71
+;; Query time: 12 msec
+;; SERVER: 10.7.17.233#53(10.7.17.233)
+(dig took 0.03 s)
+
+[mac3]$ dscacheutil -q host -a name app.team1.test | grep ip_address
+ip_address: 10.7.30.71
+
+[mac3]$ for i in 1 2 3 4; do h=$(curl -s -D - -o /dev/null -w "DNS=%{time_namelookup} TOTAL=%{time_total} IP=%{remote_ip}" https://$NAME/api/status); printf "%s  #%s http=%s ip=%s x-edge=%s x-backend=%s %s\n" "$(tsm)" $i "$(echo "$h" | awk "NR==1{print \$2}")" "$(echo "$h" | sed -n "s/.*IP=//p")" "$(echo "$h" | hv x-edge)" "$(echo "$h" | hv x-backend)" "$(echo "$h" | grep -o "DNS=[0-9.]* TOTAL=[0-9.]*")"; sleep 0.3; done
+15:45:38.216  #1 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=A DNS=0.004068 TOTAL=0.084261
+15:45:38.644  #2 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=B DNS=0.004733 TOTAL=0.037525
+15:45:39.358  #3 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=A DNS=0.004971 TOTAL=0.320505
+15:45:39.883  #4 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=B DNS=0.003596 TOTAL=0.129809
+

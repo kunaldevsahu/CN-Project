@@ -1,0 +1,30 @@
+# Ext D · 07 packet summary of the two captures
+# Date:      2026-11-25 15:10:23 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/D-failover.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# $ tcpdump -nn -r evidence/phase2/D/01-en0-edge-A-3001.pcap ...   (A stopped 15:09:30, started 15:09:55, this Mac's clock)
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+## en0, edge 10.7.30.71 <-> Backend A 10.7.3.175:3001
+  SYNs edge->A: 12   SYN-ACKs from A: 3   RSTs from A (port closed = "connection refused"): 10
+  RST timestamps (every one is a request nginx tried on A while it was down):
+    15:09:33.675320
+    15:09:33.912081
+    15:09:36.114510
+    15:09:36.501012
+    15:09:43.429128
+    15:09:44.160656
+    15:09:44.175551
+    15:09:51.740861
+    15:09:52.552347
+    15:09:52.578110
+  First refused attempt: SYN -> RST,ACK
+    15:09:33.427192 IP 10.7.30.71.64834 > 10.7.3.175.3001: Flags [SEW], seq 2044637833, win 65535, options [mss 1413,nop,wscale 6,nop,nop,TS val 1791525711 ecr 0,sackOK,eol], length 0
+    15:09:33.675320 IP 10.7.3.175.3001 > 10.7.30.71.64834: Flags [R.], seq 0, ack 2044637834, win 0, length 0
+    15:09:33.814684 IP 10.7.30.71.64834 > 10.7.3.175.3001: Flags [S], seq 2044637833, win 65535, options [mss 1413,nop,wscale 6,nop,nop,TS val 1791526099 ecr 0,sackOK,eol], length 0
+    15:09:33.912081 IP 10.7.3.175.3001 > 10.7.30.71.64834: Flags [R.], seq 0, ack 1, win 0, length 0
+  First successful connection to A after restart:
+    15:09:59.211510 IP 10.7.3.175.3001 > 10.7.30.71.64839: Flags [S.E], seq 4098835122, ack 502382201, win 65535, options [mss 1460,nop,wscale 6,nop,nop,TS val 2442313148 ecr 3079427071,sackOK,eol], length 0
+
+## lo0, edge <-> Backend B 127.0.0.1:3002: new connections per phase
+  before stop: 1   while A down: 0   after restart: 0

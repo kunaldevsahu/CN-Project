@@ -1,0 +1,24 @@
+# Baseline · Load balancing: 10 requests, X-Backend alternates A/B
+# Date:      2026-11-25 15:04:45 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/baseline.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+[mac1]$ a=0; b=0; for i in $(seq 1 10); do
+  h=$(curl -s -D - -o /dev/null https://$NAME/api/status)
+  be=$(echo "$h" | hv x-backend); [ "$be" = A ] && a=$((a+1)); [ "$be" = B ] && b=$((b+1))
+  printf "%s  #%-2s http=%s  x-edge=%s  x-backend=%s  x-upstream=%s\n" "$(date +%T)" $i "$(echo "$h" | awk "NR==1{print \$2}")" "$(echo "$h" | hv x-edge)" "$be" "$(echo "$h" | hv x-upstream)"
+  sleep 0.5
+done; echo "totals: A=$a  B=$b  (round robin -> 5/5)"
+15:04:48  #1  http=200  x-edge=mac4-primary  x-backend=B  x-upstream=127.0.0.1:3002
+15:04:49  #2  http=200  x-edge=mac4-primary  x-backend=A  x-upstream=10.7.3.175:3001
+15:04:50  #3  http=200  x-edge=mac4-primary  x-backend=B  x-upstream=127.0.0.1:3002
+15:04:50  #4  http=200  x-edge=mac4-primary  x-backend=A  x-upstream=10.7.3.175:3001
+15:04:51  #5  http=200  x-edge=mac4-primary  x-backend=B  x-upstream=127.0.0.1:3002
+15:04:52  #6  http=200  x-edge=mac4-primary  x-backend=A  x-upstream=10.7.3.175:3001
+15:04:53  #7  http=200  x-edge=mac4-primary  x-backend=B  x-upstream=127.0.0.1:3002
+15:04:54  #8  http=200  x-edge=mac4-primary  x-backend=A  x-upstream=10.7.3.175:3001
+15:04:55  #9  http=200  x-edge=mac4-primary  x-backend=B  x-upstream=127.0.0.1:3002
+15:04:56  #10 http=200  x-edge=mac4-primary  x-backend=A  x-upstream=10.7.3.175:3001
+totals: A=5  B=5  (round robin -> 5/5)
+

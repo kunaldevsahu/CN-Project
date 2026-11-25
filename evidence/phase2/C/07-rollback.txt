@@ -1,0 +1,52 @@
+# Ext C · 07 isolation OFF (rollback) on mac3 and Mac 4
+# Date:      2026-11-25 15:21:10 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/C-rollback.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+## mac3
+== Himanshus-MacBook-Pro 10.7.3.175
+$ sudo -n /sbin/pfctl -a com.apple/team1 -F all
+   No ALTQ support in kernel
+   ALTQ related functions disabled
+   rules cleared
+   nat cleared
+   dummynet cleared
+   0 tables deleted.
+$ sudo -n /sbin/pfctl -X 6517515463236133313      # release our reference
+   No ALTQ support in kernel
+   ALTQ related functions disabled
+   pf disabled
+--- restored?
+   main rules (pfctl -sr) diff before/after: EMPTY (identical)
+   anchor com.apple/team1 rules: before 0  after 0
+   status: before Disabled  after Disabled
+   /etc/pf.conf: unchanged
+   state archived in ~/team1-pf-backup/done-20261125-152110/ (next C-apply.sh saves a fresh before-state)
+
+## Mac 4 (this Mac)
+== Kunals-MacBook-Pro-3 10.7.30.71
+$ sudo -n /sbin/pfctl -a com.apple/team1 -F all
+   No ALTQ support in kernel
+   ALTQ related functions disabled
+   rules cleared
+   nat cleared
+   dummynet cleared
+   0 tables deleted.
+$ sudo -n /sbin/pfctl -X 6029383013065027588      # release our reference
+   No ALTQ support in kernel
+   ALTQ related functions disabled
+   disable request successful. 1 more pf enable reference(s) remaining, pf still enabled.
+(pf was ENABLED before isolation: leaving it enabled, no pfctl -d)
+--- restored?
+   main rules (pfctl -sr) diff before/after: EMPTY (identical)
+   anchor com.apple/team1 rules: before 0  after 0
+   status: before Enabled  after Enabled
+   /etc/pf.conf: unchanged
+   state archived in ~/team1-pf-backup/done-20261125-152110/ (next C-apply.sh saves a fresh before-state)
+
+## Direct access works again (from mac1, the client)
+[mac1]$ for hp in 10.7.3.175:3001 10.7.30.71:3002; do echo "$(tsm)  nc -vz -G 3 ${hp%:*} ${hp#*:}: $(nc -vz -G 3 ${hp%:*} ${hp#*:} 2>&1 | tail -1)"; done
+15:21:16.876  nc -vz -G 3 10.7.3.175 3001: Connection to 10.7.3.175 port 3001 [tcp/redwood-broker] succeeded!
+15:21:16.928  nc -vz -G 3 10.7.30.71 3002: Connection to 10.7.30.71 port 3002 [tcp/exlm-agent] succeeded!
+

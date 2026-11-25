@@ -1,0 +1,75 @@
+# Edge move 02 · New edge on Mac 4 works BEFORE any DNS change (curl --resolve)
+# Date:      2026-11-25 14:50:02 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/edge-move-check.sh pre)
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Edge: 10.7.30.71 (nginx), upstream A=10.7.3.175:3001 B=127.0.0.1:3002
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+## 1. nginx on this Mac: config test, listeners, deployed config
+$ /opt/homebrew/bin/nginx -t
+nginx: the configuration file /opt/homebrew/etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /opt/homebrew/etc/nginx/nginx.conf test is successful
+
+$ lsof -nP -a -p $(pgrep -d, -f 'nginx: master') -iTCP -sTCP:LISTEN
+COMMAND   PID         USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
+nginx   25993 kunaldevsahu    7u  IPv4 0x5db57ed9f3663fcf      0t0  TCP *:8080 (LISTEN)
+nginx   25993 kunaldevsahu    8u  IPv4 0x308e015b35bc720f      0t0  TCP *:80 (LISTEN)
+nginx   25993 kunaldevsahu    9u  IPv4 0x9017c260db63fe8e      0t0  TCP *:443 (LISTEN)
+
+$ cmp /Users/kunaldevsahu/CN-Project/nginx/phase2/team1.conf /opt/homebrew/etc/nginx/servers/team1.conf && echo 'deployed servers/team1.conf == repo nginx/phase2/team1.conf'
+deployed servers/team1.conf == repo nginx/phase2/team1.conf
+
+$ grep -nE '^[[:space:]]*(zone|server [0-9]|proxy_next_upstream |proxy_connect_timeout|add_header X-Edge|ssl_certificate )' /opt/homebrew/etc/nginx/servers/team1.conf
+24:    zone team1_backends 128k;
+29:    server 10.7.3.175:3001 max_fails=2 fail_timeout=5s;   # Backend A (Mac 3, Himanshu)
+30:    server 127.0.0.1:3002  max_fails=2 fail_timeout=5s;   # Backend B (this Mac, loopback)
+48:    ssl_certificate     /opt/homebrew/etc/nginx/certs/team1.crt;
+56:    add_header X-Edge            mac4-primary     always;   # which edge answered (primary or standby)
+69:        proxy_connect_timeout 2s;    # no SYN-ACK in 2 s (host asleep, packet dropped)
+75:        proxy_next_upstream         error timeout http_502 http_503;
+
+## 2. Certificate this edge serves (chain checked against our CA)
+$ echo | openssl s_client -connect 10.7.30.71:443 -servername app.team1.test -CAfile /Users/kunaldevsahu/CN-Project/certs/rootCA.pem -verify_return_error 2>&1 | grep -E '^depth=|Verify return code|^ *Protocol *:' | sort -u
+depth=0 CN=app.team1.test
+depth=1 CN=Team1 Local Root CA 2026-11
+Protocol: TLSv1.3
+Verify return code: 0 (ok)
+
+## 3. From the client, DNS untouched: force app.team1.test -> 10.7.30.71 with --resolve
+[mac1]$ curl -sv --resolve app.team1.test:443:10.7.30.71 https://app.team1.test/api/status -o /dev/null 2>&1 | grep -iE '^\* (Connected|SSL|Server certificate|ALPN: server)|^\*  +(subject|issuer|start date|expire date)|^< (HTTP|x-)'
+  (note: CA not yet trusted in this client's keychain -> curl gets --cacert rootCA.pem; still verified, NOT -k)
+* Connected to app.team1.test (10.7.30.71) port 443
+* SSL connection using TLSv1.3 / AEAD-CHACHA20-POLY1305-SHA256 / [blank] / UNDEF
+* ALPN: server accepted h2
+* Server certificate:
+*  subject: CN=app.team1.test
+*  start date: Nov 25 09:11:19 2026 GMT
+*  expire date: Dec 27 09:11:19 2027 GMT
+*  subjectAltName: host "app.team1.test" matched cert's "app.team1.test"
+*  issuer: CN=Team1 Local Root CA 2026-11
+< HTTP/2 200 
+< x-powered-by: Express
+< x-backend: A
+< x-edge: mac4-primary
+< x-upstream: 10.7.3.175:3001
+< x-upstream-status: 200
+
+## 4. 10 requests through the new edge
+[mac1]$ for i in $(seq 1 10); do
+  h=$(curl -s -D - -o /dev/null --resolve app.team1.test:443:10.7.30.71 https://$NAME/api/status)
+  printf '%s  #%-2s http=%s  x-edge=%s  x-backend=%s  x-upstream=%s\n' "$(date +%T)" $i \
+    "$(echo "$h" | awk 'NR==1{print $2}')" "$(echo "$h" | hv x-edge)" "$(echo "$h" | hv x-backend)" "$(echo "$h" | hv x-upstream)"
+  sleep 0.3
+done
+  (note: CA not yet trusted in this client's keychain -> curl gets --cacert rootCA.pem; still verified, NOT -k)
+14:50:04  #1  http=200  x-edge=mac4-primary  x-backend=B  x-upstream=127.0.0.1:3002
+14:50:04  #2  http=200  x-edge=mac4-primary  x-backend=A  x-upstream=10.7.3.175:3001
+14:50:05  #3  http=200  x-edge=mac4-primary  x-backend=B  x-upstream=127.0.0.1:3002
+14:50:05  #4  http=200  x-edge=mac4-primary  x-backend=A  x-upstream=10.7.3.175:3001
+14:50:06  #5  http=200  x-edge=mac4-primary  x-backend=B  x-upstream=127.0.0.1:3002
+14:50:06  #6  http=200  x-edge=mac4-primary  x-backend=A  x-upstream=10.7.3.175:3001
+14:50:07  #7  http=200  x-edge=mac4-primary  x-backend=B  x-upstream=127.0.0.1:3002
+14:50:07  #8  http=200  x-edge=mac4-primary  x-backend=A  x-upstream=10.7.3.175:3001
+14:50:08  #9  http=200  x-edge=mac4-primary  x-backend=B  x-upstream=127.0.0.1:3002
+14:50:08  #10 http=200  x-edge=mac4-primary  x-backend=A  x-upstream=10.7.3.175:3001
+

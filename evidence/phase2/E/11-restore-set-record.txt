@@ -1,0 +1,21 @@
+# Record change on BOTH DNS servers: app.team1.test -> 10.7.30.71
+# Date:      2026-11-25 15:35:37 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/set-record-both.sh app.team1.test 10.7.30.71 E/11-restore-set-record.txt)
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Tool: dns/phase2/set-record.sh run on mac1 (10.7.17.233) and mac3 (10.7.3.175) in parallel via ssh
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+15:35:37  sending to mac1 + mac3
+[mac1]$ bash dns/phase2/set-record.sh app.team1.test 10.7.30.71
+15:35:38  app.team1.test -> 10.7.30.71  (dnsmasq reloaded on Vaibhavs-MacBook-Air-5)
+app.team1.test.		30	IN	A	10.7.30.71
+
+[mac3]$ bash dns/phase2/set-record.sh app.team1.test 10.7.30.71
+15:35:38  app.team1.test -> 10.7.30.71  (dnsmasq reloaded on Himanshus-MacBook-Pro)
+app.team1.test.		30	IN	A	10.7.30.71
+
+## Both servers asked directly from Kunals-MacBook-Pro-3 (dig @server, no client cache involved)
+15:35:39  @10.7.17.233  app.team1.test. 30 IN A 10.7.30.71
+15:35:40  @10.7.17.233  api.team1.test. 30 IN A 10.7.30.71
+15:35:40  @10.7.3.175   app.team1.test. 30 IN A 10.7.30.71
+15:35:40  @10.7.3.175   api.team1.test. 30 IN A 10.7.30.71

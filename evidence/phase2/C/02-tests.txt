@@ -1,0 +1,85 @@
+# Ext C · 02 tests with isolation ON
+# Date:      2026-11-25 15:20:21 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/C-test.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Captures: mac1 'tcp and (port 3001 or port 3002 or port 3009)' · mac3 'tcp port 3001 and host 10.7.17.233' · Mac 4 'tcp port 3002 and host 10.7.17.233'
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+## Rules in force
+Himanshus-MacBook-Pro: Status: Enabled 
+    pass in quick on lo0 all flags S/SA keep state
+    pass in quick inet proto tcp from 10.7.30.71 to any port = 3001 flags S/SA keep state
+    block drop in quick proto tcp from any to any port = 3001
+Kunals-MacBook-Pro-3: Status: Enabled 
+    pass in quick on lo0 all flags S/SA keep state
+    pass in quick inet proto tcp from 10.7.3.175 to any port = 3002 flags S/SA keep state
+    block drop in quick proto tcp from any to any port = 3002
+
+## Captures
+Vaibhavs-MacBook-Air-5: $ sudo -n /usr/sbin/tcpdump -i en0 -U -Z vaibhavsingh -w /Users/vaibhavsingh/team1-logs/C-mac1.pcap 'tcp and (port 3001 or port 3002 or port 3009)'
+Himanshus-MacBook-Pro: $ sudo -n /usr/sbin/tcpdump -i en0 -U -Z himanshupal -w /Users/himanshupal/team1-logs/C-mac3.pcap 'tcp port 3001 and host 10.7.17.233'
+Kunals-MacBook-Pro-3: $ sudo -n /usr/sbin/tcpdump -i en0 -U -Z kunaldevsahu -w /Users/kunaldevsahu/CN-Project/evidence/phase2/C/05-mac4-en0-syn-dropped.pcap 'tcp port 3002 and host 10.7.17.233'
+
+## 1. Client (mac1) straight to the backends: must TIME OUT (dropped), unlike a closed port (REFUSED)
+[mac1]$ for t in "10.7.3.175 3001  (Backend A, pf)" "10.7.30.71 3002  (Backend B, pf)" "10.7.3.175 3009  (closed port, NO pf rule: contrast)"; do
+  set -- $t; a=$(perl -MTime::HiRes=time -e "printf q(%.3f), time")
+  r=$(nc -vz -G 3 $1 $2 2>&1 | tail -1); b=$(perl -MTime::HiRes=time -e "printf q(%.3f), time")
+  printf "%s  nc -vz -G 3 %-10s %-4s -> %-58s %.2f s   %s %s %s %s %s\n" "$(tsm)" $1 $2 "$r" $(awk -v a=$a -v b=$b "BEGIN{print b-a}") $3 $4 $5 $6 $7
+done
+15:20:33.894  nc -vz -G 3 10.7.3.175 3001 -> nc: connectx to 10.7.3.175 port 3001 (tcp) failed: Operation timed out 3.03 s   (Backend A, pf)  
+15:20:36.957  nc -vz -G 3 10.7.30.71 3002 -> nc: connectx to 10.7.30.71 port 3002 (tcp) failed: Operation timed out 3.03 s   (Backend B, pf)  
+15:20:38.347  nc -vz -G 3 10.7.3.175 3009 -> nc: connectx to 10.7.3.175 port 3009 (tcp) failed: Connection refused 1.36 s   (closed port, NO pf rule:
+
+## 2. The edge (this Mac, 10.7.30.71) to Backend A: allowed
+$ curl -s -m 4 -D - -o /dev/null -w 'took %{time_total}s\n' http://10.7.3.175:3001/api/status | grep -iE '^HTTP|^x-backend|took'
+HTTP/1.1 200 OK
+X-Backend: A
+took 0.096549s
+
+## 3. The edge to Backend B over loopback (how nginx reaches it): allowed (lo0)
+$ curl -s -m 4 -D - -o /dev/null http://127.0.0.1:3002/api/status | grep -iE '^HTTP|^x-backend'
+HTTP/1.1 200 OK
+X-Backend: B
+
+## 4. The standby edge (mac3, 10.7.3.175) to Backend B: allowed
+[mac3]$ curl -s -m 4 -D - -o /dev/null http://10.7.30.71:3002/api/status
+HTTP/1.1 200 OK
+X-Backend: B
+
+## 5. The service through the edge still works and still alternates
+[mac1]$ for i in $(seq 1 8); do h=$(curl -s -D - -o /dev/null https://$NAME/api/status); printf "%s  #%s http=%s x-backend=%s x-upstream=%s\n" "$(tsm)" $i "$(echo "$h" | awk "NR==1{print \$2}")" "$(echo "$h" | hv x-backend)" "$(echo "$h" | hv x-upstream)"; sleep 0.3; done
+15:20:41.893  #1 http=200 x-backend=A x-upstream=10.7.3.175:3001
+15:20:42.455  #2 http=200 x-backend=B x-upstream=127.0.0.1:3002
+15:20:43.309  #3 http=200 x-backend=A x-upstream=10.7.3.175:3001
+15:20:44.014  #4 http=200 x-backend=B x-upstream=127.0.0.1:3002
+15:20:45.003  #5 http=200 x-backend=A x-upstream=10.7.3.175:3001
+15:20:45.459  #6 http=200 x-backend=B x-upstream=127.0.0.1:3002
+15:20:46.214  #7 http=200 x-backend=A x-upstream=10.7.3.175:3001
+15:20:46.653  #8 http=200 x-backend=B x-upstream=127.0.0.1:3002
+
+## 6. pf rule counters (pfctl -a com.apple/team1 -vsr): the block rule has counted the dropped SYNs
+Himanshus-MacBook-Pro:
+    pass in quick on lo0 all flags S/SA keep state
+      [ Evaluations: 2687      Packets: 44        Bytes: 16768       States: 11    ]
+      [ Inserted: uid 0 pid 62489 ]
+    pass in quick inet proto tcp from 10.7.30.71 to any port = 3001 flags S/SA keep state
+      [ Evaluations: 2672      Packets: 62        Bytes: 7203        States: 3     ]
+      [ Inserted: uid 0 pid 62489 ]
+    block drop in quick proto tcp from any to any port = 3001
+      [ Evaluations: 288       Packets: 3         Bytes: 192         States: 0     ]
+      [ Inserted: uid 0 pid 62489 ]
+Kunals-MacBook-Pro-3:
+    pass in quick on lo0 all flags S/SA keep state
+      [ Evaluations: 3387      Packets: 110       Bytes: 32533       States: 7     ]
+      [ Inserted: uid 0 pid 33224 ]
+    pass in quick inet proto tcp from 10.7.3.175 to any port = 3002 flags S/SA keep state
+      [ Evaluations: 3358      Packets: 12        Bytes: 1073        States: 1     ]
+      [ Inserted: uid 0 pid 33224 ]
+    block drop in quick proto tcp from any to any port = 3002
+      [ Evaluations: 1536      Packets: 5         Bytes: 320         States: 0     ]
+      [ Inserted: uid 0 pid 33224 ]
+
+## Captures stopped
+  mac1: 0 packets dropped by kernel 12 packets captured 
+  mac3: 0 packets dropped by kernel 3 packets captured 
+  mac4: 0 packets dropped by kernel 5 packets captured 

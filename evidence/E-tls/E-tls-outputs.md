@@ -1,6 +1,6 @@
 # E · HTTPS / TLS evidence (Task E) — captured 2026-10-02
 
-## Certificate verification (Kevish)
+## Certificate verification (Pranav)
 ```
 $OPENSSL verify -CAfile rootCA.pem team1.crt
 team1.crt: OK
@@ -10,7 +10,7 @@ X509v3 Subject Alternative Name:
     DNS:app.team1.test, DNS:api.team1.test
 ```
 
-## HTTPS through nginx with explicit CA trust (Kevish, local)
+## HTTPS through nginx with explicit CA trust (Pranav, local)
 ```
 curl -i --resolve app.team1.test:443:127.0.0.1 \
   --cacert ~/cn-certs/rootCA.pem https://app.team1.test/api/status

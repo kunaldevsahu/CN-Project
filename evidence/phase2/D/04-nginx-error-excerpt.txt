@@ -1,0 +1,11 @@
+# Ext D · 04 nginx error.log lines written during the test
+# Date:      2026-11-25 15:14:47 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/D-failover.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# $ tail -n +11 /opt/homebrew/var/log/nginx/error.log
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+2026/11/25 15:13:59 [error] 31234#0: *172 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.17.233, server: app.team1.test, request: "GET /api/status HTTP/2.0", upstream: "http://10.7.3.175:3001/api/status", host: "app.team1.test"
+2026/11/25 15:14:01 [error] 31234#0: *175 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.17.233, server: app.team1.test, request: "GET /api/status HTTP/2.0", upstream: "http://10.7.3.175:3001/api/status", host: "app.team1.test"
+2026/11/25 15:14:09 [error] 31234#0: *183 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.17.233, server: app.team1.test, request: "GET /api/status HTTP/2.0", upstream: "http://10.7.3.175:3001/api/status", host: "app.team1.test"
+2026/11/25 15:14:17 [error] 31234#0: *191 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.17.233, server: app.team1.test, request: "GET /api/status HTTP/2.0", upstream: "http://10.7.3.175:3001/api/status", host: "app.team1.test"

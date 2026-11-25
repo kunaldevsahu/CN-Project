@@ -1,0 +1,33 @@
+# 01 · New Team1 CA + edge certificate for app.team1.test (Option b: Pranav's Mac 2 key not available)
+# Date: 2026-11-25 14:41:19 IST
+# Mac: Kunals-MacBook-Pro-3 10.7.30.71 (Mac 4, Kunal, new edge)
+# Command: bash certs/make-certs.sh   (rootCA.key + team1.key stay on this Mac, git-ignored)
+
+OpenSSL 3.6.3 9 Jun 2026 (Library: OpenSSL 3.6.3 9 Jun 2026)
+Certificate request self-signature ok
+subject=CN=app.team1.test
+team1.crt: OK
+X509v3 Subject Alternative Name: 
+    DNS:app.team1.test, DNS:api.team1.test
+Done. AirDrop ONLY rootCA.pem to the client Macs.
+
+## Installed for nginx
+total 16
+-rw-r--r--@ 1 kunaldevsahu  admin  1253 25 Nov 14:41 team1.crt
+-rw-------@ 1 kunaldevsahu  admin  1704 25 Nov 14:41 team1.key
+
+## CA and leaf details
+certs/rootCA.pem:
+  subject=CN=Team1 Local Root CA 2026-11
+  issuer=CN=Team1 Local Root CA 2026-11
+  serial=12265788858C030C427F017EBA956956C2388745
+  notBefore=Nov 25 09:11:19 2026 GMT
+  notAfter=Feb 27 09:11:19 2029 GMT
+  sha256 Fingerprint=89:CC:62:AE:C2:F2:03:F2:22:E0:4A:15:87:9B:73:AF:BC:4F:5D:37:71:E7:84:DE:A6:F9:F9:30:F8:03:3B:6A
+certs/team1.crt:
+  subject=CN=app.team1.test
+  issuer=CN=Team1 Local Root CA 2026-11
+  serial=16E73968502DF9F0317F36BB9BFFD679DFC7D526
+  notBefore=Nov 25 09:11:19 2026 GMT
+  notAfter=Dec 27 09:11:19 2027 GMT
+  sha256 Fingerprint=CA:02:CE:19:38:AD:CB:27:B1:F5:CD:0D:47:17:C8:D2:7C:48:E1:5E:DA:21:71:B7:B3:86:62:92:BC:31:E5:60

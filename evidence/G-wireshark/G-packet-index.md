@@ -29,7 +29,7 @@ Also in the capture: QUIC (UDP 443) from other apps = HTTP/3 (explanation-only).
 ## Detail screenshots
 - G5 — clean flow from the top: DNS 346/347, handshake 349/351/352, TLS 353–360, data, teardown
 - G6 — packet 346: UDP Src Port 58942 → Dst Port 53; Ethernet dst = 80:47:15:df:87:98 (Vaibhav's MAC)
-- G7 — packet 349: TCP Src Port 50353 → Dst Port 443, Seq 0, Flags SYN, Window 65535, options MSS / window scale / SACK permitted; Ethernet dst = ba:53:b8:ee:a3:2f (Kevish's MAC)
+- G7 — packet 349: TCP Src Port 50353 → Dst Port 443, Seq 0, Flags SYN, Window 65535, options MSS / window scale / SACK permitted; Ethernet dst = ba:53:b8:ee:a3:2f (Pranav's MAC)
 - G8 — packet 362: TLSv1.2 record, Content Type Application Data (23), Encrypted Application Data (unreadable), Application Data Protocol = HTTP/2 (chosen by ALPN)
 
 Viva point: the destination MAC is the target Mac's own MAC, not the gateway's, so frames go host-to-host on the same L2 segment.

@@ -1,0 +1,35 @@
+# Ext C · 06 what the three captures show
+# Date:      2026-11-25 15:20:59 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/C-test.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Files: evidence/phase2/C/03-mac1-client-nc-blocked.pcap, evidence/phase2/C/04-mac3-en0-syn-dropped.pcap, evidence/phase2/C/05-mac4-en0-syn-dropped.pcap
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+## mac1 (client side): SYNs go out, retransmitted, NOTHING comes back from 3001/3002; 3009 gets an immediate RST
+  15:20:30.856376 IP 10.7.17.233.51208 > 10.7.3.175.3001: Flags [SEW], seq 1902110339, win 65535, length 0
+  15:20:31.857439 IP 10.7.17.233.51208 > 10.7.3.175.3001: Flags [S], seq 1902110339, win 65535, length 0
+  15:20:32.858579 IP 10.7.17.233.51208 > 10.7.3.175.3001: Flags [S], seq 1902110339, win 65535, length 0
+  15:20:33.917332 IP 10.7.17.233.51210 > 10.7.30.71.3002: Flags [SEW], seq 2529373483, win 65535, length 0
+  15:20:34.647883 IP 10.7.17.233.51210 > 10.7.30.71.3002: Flags [S], seq 2529373483, win 65535, length 0
+  15:20:35.377995 IP 10.7.17.233.51210 > 10.7.30.71.3002: Flags [S], seq 2529373483, win 65535, length 0
+  15:20:36.108141 IP 10.7.17.233.51210 > 10.7.30.71.3002: Flags [S], seq 2529373483, win 65535, length 0
+  15:20:36.838280 IP 10.7.17.233.51210 > 10.7.30.71.3002: Flags [S], seq 2529373483, win 65535, length 0
+  15:20:36.979896 IP 10.7.17.233.51211 > 10.7.3.175.3009: Flags [SEW], seq 1991443408, win 65535, length 0
+  15:20:37.001277 IP 10.7.3.175.3009 > 10.7.17.233.51211: Flags [R.], seq 0, ack 1991443409, win 0, length 0
+  15:20:37.980492 IP 10.7.17.233.51211 > 10.7.3.175.3009: Flags [S], seq 1991443408, win 65535, length 0
+  15:20:38.309737 IP 10.7.3.175.3009 > 10.7.17.233.51211: Flags [R.], seq 0, ack 1, win 0, length 0
+
+## mac3 :3001: SYNs from mac1 that ARRIVED: 3   replies sent back (SYN-ACK or RST): 0
+  15:20:30.867439 IP 10.7.17.233.51208 > 10.7.3.175.3001: Flags [SEW], seq 1902110339, win 65535, length 0
+  15:20:31.872655 IP 10.7.17.233.51208 > 10.7.3.175.3001: Flags [S], seq 1902110339, win 65535, length 0
+  15:20:32.908853 IP 10.7.17.233.51208 > 10.7.3.175.3001: Flags [S], seq 1902110339, win 65535, length 0
+
+## Mac 4 :3002: SYNs from mac1 that ARRIVED: 5   replies sent back (SYN-ACK or RST): 0
+  15:20:33.970674 IP 10.7.17.233.51210 > 10.7.30.71.3002: Flags [SEW], seq 2529373483, win 65535, length 0
+  15:20:34.914001 IP 10.7.17.233.51210 > 10.7.30.71.3002: Flags [S], seq 2529373483, win 65535, length 0
+  15:20:35.549483 IP 10.7.17.233.51210 > 10.7.30.71.3002: Flags [S], seq 2529373483, win 65535, length 0
+  15:20:36.137661 IP 10.7.17.233.51210 > 10.7.30.71.3002: Flags [S], seq 2529373483, win 65535, length 0
+  15:20:36.920252 IP 10.7.17.233.51210 > 10.7.30.71.3002: Flags [S], seq 2529373483, win 65535, length 0
+
+Reading: tcpdump (BPF) sees an incoming packet BEFORE pf filters it, so the SYN shows up on the backend Mac,
+but pf drops it and the kernel never answers: no SYN-ACK, no RST. The client retransmits and nc gives up after 3 s.

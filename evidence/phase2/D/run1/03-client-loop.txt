@@ -1,0 +1,67 @@
+# Ext D · 03 client loop on mac1 through the edge (Backend A stopped/started during it)
+# Date:      2026-11-25 15:09:15 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/D-failover.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Columns: client time, seconds since loop start, request #, status, backend that answered, backends tried, status per try, total time
+# A retried request shows x-upstream=10.7.3.175:3001,127.0.0.1:3002 x-upstream-status=502,200
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+[mac1]$ t0=$(date +%s); end=$((SECONDS+60)); i=0
+while [ $SECONDS -lt $end ]; do i=$((i+1))
+  h=$(curl -s -D - -o /dev/null --max-time 8 -w 'TOTAL=%{time_total}' https://$NAME/api/status)
+  printf '%s  t+%-3s #%-3s http=%-4s backend=%-2s x-upstream=%-32s x-upstream-status=%-8s total=%ss\n' "$(date +%T)" $(($(date +%s)-t0)) $i     "$(echo "$h" | awk 'NR==1{print $2}')" "$(echo "$h" | hv x-backend)" "$(echo "$h" | hv x-upstream | sed 's/, /,/g')"     "$(echo "$h" | hv x-upstream-status | sed 's/, /,/g')" "$(echo "$h" | sed -n 's/.*TOTAL=//p')"
+  sleep 0.5
+done
+15:09:18  t+1   #1   http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.662727s
+15:09:19  t+2   #2   http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      total=0.295824s
+15:09:20  t+3   #3   http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.603721s
+15:09:21  t+4   #4   http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      total=0.304052s
+15:09:22  t+5   #5   http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.580878s
+15:09:23  t+6   #6   http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      total=0.440717s
+15:09:25  t+8   #7   http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=1.101464s
+15:09:26  t+9   #8   http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      total=0.922827s
+15:09:27  t+10  #9   http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.471429s
+15:09:29  t+12  #10  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      total=1.014205s
+15:09:30  t+13  #11  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.511656s
+15:09:31  t+14  #12  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      total=0.763731s
+15:09:32  t+15  #13  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.181101s
+15:09:34  t+17  #14  http=200  backend=B  x-upstream=10.7.3.175:3001,127.0.0.1:3002   x-upstream-status=502,200  total=1.490050s
+15:09:35  t+18  #15  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.444414s
+15:09:36  t+19  #16  http=200  backend=B  x-upstream=10.7.3.175:3001,127.0.0.1:3002   x-upstream-status=502,200  total=0.493544s
+15:09:37  t+20  #17  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.465718s
+15:09:38  t+21  #18  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.084592s
+15:09:39  t+22  #19  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.392890s
+15:09:40  t+23  #20  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.951228s
+15:09:41  t+24  #21  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.077633s
+15:09:42  t+25  #22  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.279789s
+15:09:44  t+27  #23  http=200  backend=B  x-upstream=10.7.3.175:3001,127.0.0.1:3002   x-upstream-status=502,200  total=1.502454s
+15:09:45  t+28  #24  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.570698s
+15:09:46  t+29  #25  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.363586s
+15:09:47  t+30  #26  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.600456s
+15:09:48  t+31  #27  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.315957s
+15:09:49  t+32  #28  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.664290s
+15:09:50  t+33  #29  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.450244s
+15:09:52  t+35  #30  http=200  backend=B  x-upstream=10.7.3.175:3001,127.0.0.1:3002   x-upstream-status=502,200  total=1.659094s
+15:09:53  t+36  #31  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.494383s
+15:09:54  t+37  #32  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.312220s
+15:09:56  t+39  #33  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.653313s
+15:09:57  t+40  #34  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.380740s
+15:09:58  t+41  #35  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.455734s
+15:09:59  t+42  #36  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      total=0.996727s
+15:10:02  t+45  #37  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=2.009785s
+15:10:03  t+46  #38  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      total=0.453531s
+15:10:04  t+47  #39  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.492823s
+15:10:05  t+48  #40  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      total=0.293605s
+15:10:05  t+48  #41  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.215105s
+15:10:07  t+50  #42  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      total=0.794429s
+15:10:08  t+51  #43  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.603606s
+15:10:09  t+52  #44  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      total=0.338284s
+15:10:10  t+53  #45  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.174280s
+15:10:11  t+54  #46  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      total=0.441929s
+15:10:12  t+55  #47  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.443557s
+15:10:13  t+56  #48  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      total=0.461589s
+15:10:13  t+56  #49  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.085756s
+15:10:15  t+58  #50  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      total=0.944106s
+15:10:16  t+59  #51  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=0.480590s
+15:10:17  t+60  #52  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      total=0.460821s
+

@@ -1,0 +1,22 @@
+# Ext E · 06 mac3 used as a second client: cached answer vs flushed
+# Date:      2026-11-25 15:34:16 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/E-cutover.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Warm the cache before the change, ask again after the change (cache: old edge), flush, ask again (new edge)
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+## Before the change: flush + one request (fills mac3's cache with 10.7.30.71)
+cache flushed on Himanshus-MacBook-Pro
+[mac3]$ h=$(curl -s -D - -o /dev/null --max-time 5 -w "IP=%{remote_ip} CODE=%{http_code}" https://$NAME/api/status); echo "$(tsm)  OS resolver: $(dscacheutil -q host -a name $NAME | awk "/ip_address/{print \$2}")   curl -> $(echo "$h" | sed -n "s/.*IP=\([0-9.]*\).*/\1/p")  http=$(echo "$h" | sed -n "s/.*CODE=\([0-9]*\).*/\1/p")  x-edge=$(echo "$h" | hv x-edge)"
+15:34:18.914  OS resolver: 10.7.30.71   curl -> 10.7.30.71  http=200  x-edge=mac4-primary
+
+
+## Right after the change, NO flush: mac3 still uses its cached answer (old edge)
+[mac3]$ h=$(curl -s -D - -o /dev/null --max-time 5 -w "IP=%{remote_ip} CODE=%{http_code}" https://$NAME/api/status); echo "$(tsm)  OS resolver: $(dscacheutil -q host -a name $NAME | awk "/ip_address/{print \$2}")   curl -> $(echo "$h" | sed -n "s/.*IP=\([0-9.]*\).*/\1/p")  http=$(echo "$h" | sed -n "s/.*CODE=\([0-9]*\).*/\1/p")  x-edge=$(echo "$h" | hv x-edge)"
+15:34:29.230  OS resolver: 10.7.30.71   curl -> 10.7.30.71  http=200  x-edge=mac4-primary
+
+## Flush mac3's cache, ask again: new edge at once
+cache flushed on Himanshus-MacBook-Pro
+[mac3]$ h=$(curl -s -D - -o /dev/null --max-time 5 -w "IP=%{remote_ip} CODE=%{http_code}" https://$NAME/api/status); echo "$(tsm)  OS resolver: $(dscacheutil -q host -a name $NAME | awk "/ip_address/{print \$2}")   curl -> $(echo "$h" | sed -n "s/.*IP=\([0-9.]*\).*/\1/p")  http=$(echo "$h" | sed -n "s/.*CODE=\([0-9]*\).*/\1/p")  x-edge=$(echo "$h" | hv x-edge)"
+15:34:30.643  OS resolver: 10.7.3.175   curl -> 10.7.3.175  http=200  x-edge=mac3-standby
+

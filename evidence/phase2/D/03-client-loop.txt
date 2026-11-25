@@ -1,0 +1,72 @@
+# Ext D · 03 client loop on mac1 through the edge (Backend A stopped/started during it)
+# Date:      2026-11-25 15:13:41 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/D-failover.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Columns: client time (ms), seconds since loop start, request #, status, backend that answered, backends tried,
+# status per try, DNS lookup time, total time. A retried request: x-upstream=10.7.3.175:3001,127.0.0.1:3002 x-upstream-status=502,200
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+[mac1]$ t0=$(date +%s); end=$((SECONDS+60)); i=0
+while [ $SECONDS -lt $end ]; do i=$((i+1))
+  h=$(curl -s -D - -o /dev/null --max-time 8 -w 'DNS=%{time_namelookup} TOTAL=%{time_total}' https://$NAME/api/status)
+  printf '%s  t+%-3s #%-3s http=%-4s backend=%-2s x-upstream=%-32s x-upstream-status=%-8s dns=%-6s total=%ss\n' "$(tsm)" $(($(date +%s)-t0)) $i     "$(echo "$h" | awk 'NR==1{print $2}')" "$(echo "$h" | hv x-backend)" "$(echo "$h" | hv x-upstream | sed 's/, /,/g')"     "$(echo "$h" | hv x-upstream-status | sed 's/, /,/g')" "$(echo "$h" | sed -n 's/.*DNS=\([0-9.]*\).*/\1/p' | cut -c1-6)" "$(echo "$h" | sed -n 's/.*TOTAL=//p' | cut -c1-6)"
+  sleep 0.5
+done
+15:13:44.636  t+0   #1   http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      dns=0.0030 total=0.0624s
+15:13:45.616  t+1   #2   http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0031 total=0.3956s
+15:13:46.774  t+2   #3   http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      dns=0.0028 total=0.5680s
+15:13:47.755  t+3   #4   http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0028 total=0.3937s
+15:13:48.768  t+4   #5   http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      dns=0.0030 total=0.4250s
+15:13:49.883  t+5   #6   http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0028 total=0.5260s
+15:13:51.368  t+7   #7   http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      dns=0.0030 total=0.8965s
+15:13:52.206  t+8   #8   http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0029 total=0.2507s
+15:13:52.957  t+8   #9   http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      dns=0.0028 total=0.1625s
+15:13:54.065  t+10  #10  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0031 total=0.5215s
+15:13:55.165  t+11  #11  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      dns=0.0027 total=0.5134s
+15:13:56.103  t+12  #12  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0027 total=0.3513s
+15:13:57.164  t+13  #13  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      dns=0.0029 total=0.4751s
+15:13:58.207  t+14  #14  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0033 total=0.4536s
+15:13:59.791  t+15  #15  http=200  backend=B  x-upstream=10.7.3.175:3001,127.0.0.1:3002   x-upstream-status=502,200  dns=0.0027 total=0.9949s
+15:14:00.593  t+16  #16  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0036 total=0.2133s
+15:14:01.932  t+17  #17  http=200  backend=B  x-upstream=10.7.3.175:3001,127.0.0.1:3002   x-upstream-status=502,200  dns=0.0030 total=0.7500s
+15:14:02.713  t+18  #18  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0030 total=0.1939s
+15:14:03.434  t+19  #19  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0028 total=0.1331s
+15:14:04.513  t+20  #20  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0032 total=0.4953s
+15:14:05.538  t+21  #21  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0030 total=0.4351s
+15:14:06.664  t+22  #22  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0029 total=0.5389s
+15:14:07.635  t+23  #23  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0029 total=0.3839s
+15:14:09.697  t+25  #24  http=200  backend=B  x-upstream=10.7.3.175:3001,127.0.0.1:3002   x-upstream-status=502,200  dns=0.0032 total=1.4734s
+15:14:10.747  t+26  #25  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0028 total=0.4604s
+15:14:11.877  t+27  #26  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0027 total=0.5413s
+15:14:12.883  t+28  #27  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0029 total=0.4180s
+15:14:14.032  t+30  #28  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0028 total=0.5602s
+15:14:14.994  t+30  #29  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0028 total=0.3739s
+15:14:16.085  t+32  #30  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0027 total=0.5040s
+15:14:17.538  t+33  #31  http=200  backend=B  x-upstream=10.7.3.175:3001,127.0.0.1:3002   x-upstream-status=502,200  dns=0.0028 total=0.8666s
+15:14:18.180  t+34  #32  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0028 total=0.0548s
+15:14:19.218  t+35  #33  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0028 total=0.4514s
+15:14:20.304  t+36  #34  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0029 total=0.4983s
+15:14:21.275  t+37  #35  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0030 total=0.3842s
+15:14:22.434  t+38  #36  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0030 total=0.5735s
+15:14:23.369  t+39  #37  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0032 total=0.3481s
+15:14:24.504  t+40  #38  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      dns=0.0030 total=0.5469s
+15:14:25.467  t+41  #39  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0030 total=0.3751s
+15:14:26.622  t+42  #40  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      dns=0.0030 total=0.5661s
+15:14:27.565  t+43  #41  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0028 total=0.3576s
+15:14:28.626  t+44  #42  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      dns=0.0029 total=0.4712s
+15:14:29.647  t+45  #43  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0028 total=0.4321s
+15:14:30.809  t+46  #44  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      dns=0.0041 total=0.5724s
+15:14:31.768  t+47  #45  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0029 total=0.3715s
+15:14:32.866  t+48  #46  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      dns=0.0034 total=0.5063s
+15:14:33.832  t+49  #47  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0031 total=0.3794s
+15:14:35.009  t+51  #48  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      dns=0.0032 total=0.5893s
+15:14:35.969  t+51  #49  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0028 total=0.3719s
+15:14:37.493  t+53  #50  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      dns=0.0030 total=0.9345s
+15:14:38.147  t+54  #51  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0029 total=0.0648s
+15:14:39.193  t+55  #52  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      dns=0.0030 total=0.4581s
+15:14:40.247  t+56  #53  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0028 total=0.4650s
+15:14:41.253  t+57  #54  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      dns=0.0028 total=0.4197s
+15:14:42.299  t+58  #55  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0028 total=0.4568s
+15:14:43.405  t+59  #56  http=200  backend=A  x-upstream=10.7.3.175:3001                  x-upstream-status=200      dns=0.0031 total=0.5207s
+15:14:44.371  t+60  #57  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      dns=0.0027 total=0.3760s
+

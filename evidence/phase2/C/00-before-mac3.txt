@@ -1,0 +1,39 @@
+# Ext C · 00 pf state BEFORE isolation on mac3 (saved by C-apply.sh)
+# Date:      2026-11-25 15:20:02 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/C-apply.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+# saved 2026-11-25 15:20:01, pf enabled before: no
+## sudo -n /sbin/pfctl -si
+Status: Disabled                              Debug: Urgent
+
+State Table                          Total             Rate
+  current entries                        0               
+  searches                               0            0.0/s
+  inserts                                0            0.0/s
+  removals                               0            0.0/s
+Counters
+  match                                  0            0.0/s
+  bad-offset                             0            0.0/s
+  fragment                               0            0.0/s
+  short                                  0            0.0/s
+  normalize                              0            0.0/s
+  memory                                 0            0.0/s
+  bad-timestamp                          0            0.0/s
+  congestion                             0            0.0/s
+  ip-option                              0            0.0/s
+  proto-cksum                            0            0.0/s
+  state-mismatch                         0            0.0/s
+  state-insert                           0            0.0/s
+  state-limit                            0            0.0/s
+  src-limit                              0            0.0/s
+  synproxy                               0            0.0/s
+  dummynet                               0            0.0/s
+  invalid-port                           0            0.0/s
+
+## sudo -n /sbin/pfctl -sr
+scrub-anchor "com.apple/*" all fragment reassemble
+anchor "com.apple/*" all
+
+## sudo -n /sbin/pfctl -a com.apple/team1 -sr  (lines: 0)

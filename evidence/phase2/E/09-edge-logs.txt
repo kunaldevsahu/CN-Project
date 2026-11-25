@@ -1,0 +1,30 @@
+# Ext E · 09 the two edges' own logs: requests from mac1 per 5 s after the cutover
+# Date:      2026-11-25 15:39:20 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/E-cutover.sh --analyze)
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Mac 4: /opt/homebrew/var/log/nginx/team1-access.log (Mac 4 clock) · mac3: same path on mac3 (mac3 clock). The old edge goes quiet when the client's cached answer expires.
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+  s after cutover  mac4-primary   mac3-standby  
+   -20 .. -15      3              0             
+   -15 .. -10      4              0             
+   -10 .. -5       4              0             
+    -5 .. 0        4              0             
+     0 .. 5        3              0             
+     5 .. 10       5              0             
+    10 .. 15       3              0             
+    15 .. 20       5              0             
+    20 .. 25       0              4             
+    25 .. 30       0              4             
+    30 .. 35       0              4             
+    35 .. 40       0              4             
+    40 .. 45       0              4             
+    45 .. 50       0              4             
+    50 .. 55       0              4             
+    55 .. 60       0              3             
+    60 .. 65       0              4             
+    65 .. 70       0              4             
+    70 .. 75       0              2             
+
+  last request on mac4-primary:  19.9 s after the cutover
+  first request on mac3-standby: 21.2 s after the cutover
