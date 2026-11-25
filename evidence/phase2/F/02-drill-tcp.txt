@@ -1,0 +1,94 @@
+# Ext F · Drill TCP: nginx stopped on the edge
+# Date:      2026-11-25 16:04:24 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/F-drill.sh tcp)
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Method: inject -> diagnose.sh on mac1 (first failing layer) -> confirm by hand -> fix -> diagnose.sh again
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+
+## INJECT (edge, Mac 4): stop nginx
+$ brew services stop nginx
+==> Successfully stopped `nginx` (label: sh.brew.nginx)
+16:04:27.755  fault injected
+
+## DIAGNOSE from mac1
+[mac1]$ bash scripts/diagnose.sh      (sent over ssh: ssh mac1 bash -s < scripts/diagnose.sh)
+Diagnosing https://app.team1.test/api/status  from Vaibhavs-MacBook-Air-5 (10.7.17.233)  16:04:28
+Expected edge: 10.7.30.71
+
+[0] Resolver configuration (which DNS servers this Mac asks)
+  OK   servers: 10.7.17.233 10.7.3.175
+
+[1] DNS (UDP 53): ask each server directly, then the OS resolver
+  OK   @10.7.17.233 -> 10.7.30.71  (TTL 30s)
+  OK   @10.7.3.175 -> 10.7.30.71  (TTL 30s)
+  OK   OS resolver (what curl/browser use) -> 10.7.30.71
+
+[2] IP reachability (ICMP) to 10.7.30.71
+  OK   ping 10.7.30.71 replies
+
+[3] TCP connect to 10.7.30.71:443 (the 3-way handshake)
+  FAIL connection REFUSED: host is up, nothing listening on 443 (RST)
+
+SUMMARY  DNS PASS  |  TCP FAIL  |  TLS SKIP  |  HTTP SKIP
+First failing layer: TCP (port 443 refused)
+  Next: on the edge: brew services list | grep nginx; nginx -t; lsof -nP -iTCP:443 -sTCP:LISTEN
+(diagnose.sh exit code: 2)
+16:04:30.629  diagnosed (diagnose.sh run + read): 2.9 s after the injection
+
+## CONFIRM by hand
+[mac1]$ nc -vz -G 3 10.7.30.71 443 2>&1 | tail -1; ping -c 1 -q 10.7.30.71 | tail -1
+nc: connectx to 10.7.30.71 port 443 (tcp) failed: Connection refused
+round-trip min/avg/max/stddev = 29.448/29.448/29.448/nan ms
+
+$ /opt/homebrew/bin/brew services list | grep -E 'Name|nginx'; lsof -nP -iTCP:443 -sTCP:LISTEN || echo 'nothing listens on :443'
+Name          Status User         File
+nginx         none                         
+nothing listens on :443
+
+
+## FIX: start nginx (config test first)
+$ /opt/homebrew/bin/nginx -t 2>&1 | tail -1 && /opt/homebrew/bin/brew services start nginx 2>&1 | tail -1
+nginx: configuration file /opt/homebrew/etc/nginx/nginx.conf test is successful
+==> Successfully started `nginx` (label: sh.brew.nginx)
+
+
+## VERIFY: diagnose.sh again
+[mac1]$ bash scripts/diagnose.sh      (sent over ssh: ssh mac1 bash -s < scripts/diagnose.sh)
+Diagnosing https://app.team1.test/api/status  from Vaibhavs-MacBook-Air-5 (10.7.17.233)  16:04:36
+Expected edge: 10.7.30.71
+
+[0] Resolver configuration (which DNS servers this Mac asks)
+  OK   servers: 10.7.17.233 10.7.3.175
+
+[1] DNS (UDP 53): ask each server directly, then the OS resolver
+  OK   @10.7.17.233 -> 10.7.30.71  (TTL 30s)
+  OK   @10.7.3.175 -> 10.7.30.71  (TTL 30s)
+  OK   OS resolver (what curl/browser use) -> 10.7.30.71
+
+[2] IP reachability (ICMP) to 10.7.30.71
+  OK   ping 10.7.30.71 replies
+
+[3] TCP connect to 10.7.30.71:443 (the 3-way handshake)
+  OK   port 443 open
+
+[4] TLS handshake + certificate validation (no -k)
+         subject= /CN=app.team1.test
+         issuer= /CN=Team1 Local Root CA 2026-11
+         notAfter=Dec 27 09:11:19 2027 GMT
+         SAN: DNS:app.team1.test, DNS:api.team1.test
+  OK   TLS handshake done, certificate trusted for app.team1.test
+
+[5] HTTP (application) through the edge
+         status=200  x-backend=B  x-edge=mac4-primary  x-upstream=127.0.0.1:3002  x-upstream-status=200  time_total=0.285084s
+         body: {"backend":"B","status":"ok","time":"2026-11-25T10:34:40.038Z"}
+  OK   application answered
+
+[6] Load balancing (6 requests, information only)
+         backends: A B A B A B
+  OK   both backends in rotation
+
+SUMMARY  DNS PASS  |  TCP PASS  |  TLS PASS  |  HTTP PASS
+All layers OK
+(diagnose.sh exit code: 0)
+16:04:41.883  restored and verified: 14.1 s after the injection

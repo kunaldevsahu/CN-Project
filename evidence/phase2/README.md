@@ -48,7 +48,12 @@ Scripts live in `scripts/phase2/` and are re-run live on demo day. Main client =
 | `E/11-restore-set-record.txt`, `E/12-client-loop-restore.txt` | Record back to 10.7.30.71; mac1 back on mac4-primary after 23.3 s without a flush | E, B |
 | `E/13-standby-down.txt` | Standby stopped only after the restore; :443 refused; DNS no longer points at it | E |
 | `E/14-notes.md` | Results table + viva points (gradual switch, ~38 s cache on macOS, production order, own key/same CA) | E |
-| `F/practice-log.md` | Real faults: Local Network privacy blocking nginx ("No route to host", no packet sent); ssh hang | F |
+| `F/practice-log.md` | 3 real faults (Local Network privacy blocking nginx, ssh hang, root `nginx -t` chown) + the 4 layer drills with results and lessons | F |
+| `F/00-diagnose-healthy.txt` | `scripts/diagnose.sh` on mac1, healthy: DNS PASS \| TCP PASS \| TLS PASS \| HTTP PASS | F |
+| `F/01-drill-dns.txt` | Wrong record → `DNS FAIL` (exit 1), confirmed with `set-record.sh --show`, fixed, PASS again | F |
+| `F/02-drill-tcp.txt` | nginx stopped → `TCP FAIL` refused (exit 2), fixed, PASS again | F |
+| `F/03-drill-tls.txt` | Cert for wrong.test → `TLS FAIL` curl (60) (exit 3), fixed, PASS again | F |
+| `F/04-drill-http.txt` | Both backends down → `HTTP FAIL` 502 (exit 4), `diagnose-edge.sh` shows both refused, fixed, PASS again | F |
 | `A/00-events.txt` | Primary DNS stopped 15:45:42 / started 15:46:06 with `brew services` on mac1 | A |
 | `A/01-baseline.txt` | mac3 resolver order (10.7.17.233, 10.7.3.175); both servers same record; dig `SERVER: 10.7.17.233` | A |
 | `A/02-primary-down-client.txt` | Primary down: mac3 and mac1 plain dig → `SERVER: 10.7.3.175` (1.05 s); HTTPS 8/8 × 200 | A |

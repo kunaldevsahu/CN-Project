@@ -53,4 +53,39 @@ backends). After the fix: 12 s for the whole start + check.
 
 ---
 
-## Practice drills (one per layer) · to be filled in Stage 8
+## Real fault 3 · I made the edge's temp folders unwritable (root `nginx -t`)
+**When:** 2026-11-25 16:02 · **Found by:** checking file ownership after `scripts/diagnose-edge.sh` was changed to `sudo -n`.
+**What happened.** The edge on Mac 4 runs nginx as the normal user. Running `sudo -n /opt/homebrew/bin/nginx -t` there
+made nginx (as root) `chown` its temp folders in `/opt/homebrew/var/run/nginx/` to `nobody` (mode 700, ctime 16:02:32).
+The user-level workers could then no longer write request bodies or big responses to disk. Our API answers are tiny,
+so nothing failed yet. That is exactly the kind of fault that appears weeks later under load.
+**Fix.** The folders were empty, and I own their parent, so `rmdir` them + `nginx -s reload` recreated them as
+`kunaldevsahu`. `diagnose-edge.sh` now runs `nginx -t` as whoever owns the nginx master (root on mac3, the user on Mac 4).
+**Lesson.** A "read-only" check run as root is not always read-only. Run tools as the same user as the service.
+
+---
+
+## Practice drills: one fault per layer (Stage 8, 2026-11-25 16:04–16:05)
+Script: `scripts/phase2/F-drill.sh dns|tcp|tls|http` injects the fault, runs `scripts/diagnose.sh` on mac1, runs the
+manual commands, fixes it and runs `diagnose.sh` again. The script injects the fault itself so it can be repeated; for the
+viva, a teammate should inject one in secret and the others diagnose it out loud with the same method.
+Healthy reference: `00-diagnose-healthy.txt` (DNS PASS | TCP PASS | TLS PASS | HTTP PASS).
+
+| Drill (file) | Injected | diagnose.sh said | Confirmed by hand | Fix | Inject → verified |
+|---|---|---|---|---|---|
+| **DNS** (`01-drill-dns.txt`) | app/api → 10.7.3.175 on both DNS servers | `DNS FAIL`: "resolves to 10.7.3.175 but the edge is 10.7.30.71", exit 1 | `set-record.sh --show` on mac1 + mac3; `nc 10.7.3.175 443` refused | `set-record-both.sh … 10.7.30.71`, flush | 18.4 s |
+| **TCP** (`02-drill-tcp.txt`) | `brew services stop nginx` on the edge | `TCP FAIL`: "connection REFUSED … nothing listening on 443", exit 2 | `nc` refused but ping OK; `lsof :443` empty; brew services shows nginx stopped | `nginx -t`, `brew services start nginx` | 14.1 s |
+| **TLS** (`03-drill-tls.txt`) | edge config points at a self-signed cert for `wrong.test` | `TLS FAIL`: curl `(60)` self signed certificate, subject `CN=wrong.test`, exit 3 | `openssl s_client … \| openssl x509 -subject -issuer` | config restored from backup, `nginx -t`, reload | 15.3 s |
+| **HTTP** (`04-drill-http.txt`) | both backends stopped | `HTTP FAIL`: 502 from the edge (DNS, TCP, TLS PASS), exit 4 | `diagnose-edge.sh`: both backends refused; error.log `connect() failed (61)` | start both backends, wait `fail_timeout` | 27.8 s |
+
+**What the drills taught us**
+- **Stop at the first failing layer.** In the DNS drill, TCP to the wrong IP is also refused, but that's a symptom: the
+  cause is the record. With the expected edge built in (`EXPECT=10.7.30.71`), diagnose.sh names DNS instead of TCP.
+- **Refused vs timed out** was the fastest clue every time: refused = the host answered and nothing listens (nginx stopped,
+  wrong Mac); timed out = nothing answered (host off, pf drop, see Ext C).
+- **TLS failures say *why*:** `(60)` with `self signed` / a different subject = wrong certificate; `(35)` would be a
+  protocol or handshake problem. Always read the subject/issuer before touching the keychain.
+- **502 means the network is fine up to the edge.** Look behind it with `diagnose-edge.sh` (edge → each backend) and the
+  error log, not on the client.
+- **Fix time is dominated by restarts and caches** (DNS cache flush, `fail_timeout` 5 s), not by finding the fault: diagnosis
+  took 1–7 s with the script.

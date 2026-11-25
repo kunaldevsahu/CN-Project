@@ -1,0 +1,44 @@
+# Ext F · diagnose.sh on the healthy system (all layers PASS)
+# Date:      2026-11-25 16:03:44 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/F-drill.sh healthy)
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Method: inject -> diagnose.sh on mac1 (first failing layer) -> confirm by hand -> fix -> diagnose.sh again
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+[mac1]$ bash scripts/diagnose.sh      (sent over ssh: ssh mac1 bash -s < scripts/diagnose.sh)
+Diagnosing https://app.team1.test/api/status  from Vaibhavs-MacBook-Air-5 (10.7.17.233)  16:03:46
+Expected edge: 10.7.30.71
+
+[0] Resolver configuration (which DNS servers this Mac asks)
+  OK   servers: 10.7.17.233 10.7.3.175
+
+[1] DNS (UDP 53): ask each server directly, then the OS resolver
+  OK   @10.7.17.233 -> 10.7.30.71  (TTL 30s)
+  OK   @10.7.3.175 -> 10.7.30.71  (TTL 30s)
+  OK   OS resolver (what curl/browser use) -> 10.7.30.71
+
+[2] IP reachability (ICMP) to 10.7.30.71
+  OK   ping 10.7.30.71 replies
+
+[3] TCP connect to 10.7.30.71:443 (the 3-way handshake)
+  OK   port 443 open
+
+[4] TLS handshake + certificate validation (no -k)
+         subject= /CN=app.team1.test
+         issuer= /CN=Team1 Local Root CA 2026-11
+         notAfter=Dec 27 09:11:19 2027 GMT
+         SAN: DNS:app.team1.test, DNS:api.team1.test
+  OK   TLS handshake done, certificate trusted for app.team1.test
+
+[5] HTTP (application) through the edge
+         status=200  x-backend=A  x-edge=mac4-primary  x-upstream=10.7.3.175:3001  x-upstream-status=200  time_total=1.055055s
+         body: {"backend":"A","status":"ok","time":"2026-11-25T10:33:48.652Z"}
+  OK   application answered
+
+[6] Load balancing (6 requests, information only)
+         backends: B A B A B A
+  OK   both backends in rotation
+
+SUMMARY  DNS PASS  |  TCP PASS  |  TLS PASS  |  HTTP PASS
+All layers OK
+(diagnose.sh exit code: 0)

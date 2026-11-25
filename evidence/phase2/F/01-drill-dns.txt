@@ -1,0 +1,96 @@
+# Ext F · Drill DNS: wrong record on both DNS servers
+# Date:      2026-11-25 16:03:59 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/F-drill.sh dns)
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Method: inject -> diagnose.sh on mac1 (first failing layer) -> confirm by hand -> fix -> diagnose.sh again
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+
+## INJECT (both DNS servers): app/api -> 10.7.3.175
+16:04:02  app.team1.test -> 10.7.3.175  (dnsmasq reloaded on Vaibhavs-MacBook-Air-5)
+16:04:03  app.team1.test -> 10.7.3.175  (dnsmasq reloaded on Himanshus-MacBook-Pro)
+16:04:04  @10.7.17.233  app.team1.test. 30 IN A 10.7.3.175
+16:04:04  @10.7.17.233  api.team1.test. 30 IN A 10.7.3.175
+16:04:04  @10.7.3.175   app.team1.test. 30 IN A 10.7.3.175
+16:04:04  @10.7.3.175   api.team1.test. 30 IN A 10.7.3.175
+(mac1 cache flushed)
+16:04:06.459  fault injected
+
+## DIAGNOSE from mac1
+[mac1]$ bash scripts/diagnose.sh      (sent over ssh: ssh mac1 bash -s < scripts/diagnose.sh)
+Diagnosing https://app.team1.test/api/status  from Vaibhavs-MacBook-Air-5 (10.7.17.233)  16:04:06
+Expected edge: 10.7.30.71
+
+[0] Resolver configuration (which DNS servers this Mac asks)
+  OK   servers: 10.7.17.233 10.7.3.175
+
+[1] DNS (UDP 53): ask each server directly, then the OS resolver
+  OK   @10.7.17.233 -> 10.7.3.175  (TTL 30s)
+  OK   @10.7.3.175 -> 10.7.3.175  (TTL 30s)
+  OK   OS resolver (what curl/browser use) -> 10.7.3.175
+  FAIL resolves to 10.7.3.175 but the edge is 10.7.30.71: wrong record (or a cutover in progress: run with EXPECT=10.7.3.175)
+
+SUMMARY  DNS FAIL  |  TCP SKIP  |  TLS SKIP  |  HTTP SKIP
+First failing layer: DNS data (wrong IP for app.team1.test)
+  Next: check the record on BOTH DNS servers: bash dns/phase2/set-record.sh --show (mac1 and mac3)
+(diagnose.sh exit code: 1)
+16:04:07.515  diagnosed (diagnose.sh run + read): 1.1 s after the injection
+
+## CONFIRM by hand: the record itself, on each DNS server
+[mac1]$ bash dns/phase2/set-record.sh --show
+10.7.3.175 app.team1.test api.team1.test
+[mac3]$ bash dns/phase2/set-record.sh --show
+10.7.3.175 app.team1.test api.team1.test
+[mac1]$ dig +nocmd app.team1.test +short; nc -vz -G 3 10.7.3.175 443 2>&1 | tail -1
+10.7.3.175
+nc: connectx to 10.7.3.175 port 443 (tcp) failed: Connection refused
+
+
+## FIX: correct record on both DNS servers
+16:04:15  app.team1.test -> 10.7.30.71  (dnsmasq reloaded on Vaibhavs-MacBook-Air-5)
+16:04:15  app.team1.test -> 10.7.30.71  (dnsmasq reloaded on Himanshus-MacBook-Pro)
+16:04:17  @10.7.17.233  app.team1.test. 30 IN A 10.7.30.71
+16:04:17  @10.7.17.233  api.team1.test. 30 IN A 10.7.30.71
+16:04:17  @10.7.3.175   app.team1.test. 30 IN A 10.7.30.71
+16:04:17  @10.7.3.175   api.team1.test. 30 IN A 10.7.30.71
+(mac1 cache flushed)
+
+## VERIFY: diagnose.sh again
+[mac1]$ bash scripts/diagnose.sh      (sent over ssh: ssh mac1 bash -s < scripts/diagnose.sh)
+Diagnosing https://app.team1.test/api/status  from Vaibhavs-MacBook-Air-5 (10.7.17.233)  16:04:20
+Expected edge: 10.7.30.71
+
+[0] Resolver configuration (which DNS servers this Mac asks)
+  OK   servers: 10.7.17.233 10.7.3.175
+
+[1] DNS (UDP 53): ask each server directly, then the OS resolver
+  OK   @10.7.17.233 -> 10.7.30.71  (TTL 30s)
+  OK   @10.7.3.175 -> 10.7.30.71  (TTL 30s)
+  OK   OS resolver (what curl/browser use) -> 10.7.30.71
+
+[2] IP reachability (ICMP) to 10.7.30.71
+  OK   ping 10.7.30.71 replies
+
+[3] TCP connect to 10.7.30.71:443 (the 3-way handshake)
+  OK   port 443 open
+
+[4] TLS handshake + certificate validation (no -k)
+         subject= /CN=app.team1.test
+         issuer= /CN=Team1 Local Root CA 2026-11
+         notAfter=Dec 27 09:11:19 2027 GMT
+         SAN: DNS:app.team1.test, DNS:api.team1.test
+  OK   TLS handshake done, certificate trusted for app.team1.test
+
+[5] HTTP (application) through the edge
+         status=200  x-backend=B  x-edge=mac4-primary  x-upstream=127.0.0.1:3002  x-upstream-status=200  time_total=0.471002s
+         body: {"backend":"B","status":"ok","time":"2026-11-25T10:34:21.775Z"}
+  OK   application answered
+
+[6] Load balancing (6 requests, information only)
+         backends: A B A B A B
+  OK   both backends in rotation
+
+SUMMARY  DNS PASS  |  TCP PASS  |  TLS PASS  |  HTTP PASS
+All layers OK
+(diagnose.sh exit code: 0)
+16:04:24.871  restored and verified: 18.4 s after the injection

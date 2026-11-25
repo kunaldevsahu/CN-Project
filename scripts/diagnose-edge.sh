@@ -1,5 +1,5 @@
 #!/bin/bash
-# Extension F: checks run ON AN EDGE (Mac 2 primary, or Mac 3 standby). Read-only.
+# Extension F: checks run ON AN EDGE (Mac 4 primary, or Mac 3 standby). Read-only. sudo only as `sudo -n <full path>`.
 #   bash diagnose-edge.sh
 # Use it after diagnose.sh on a client points at the edge or the edge->backend hop.
 BACKENDS="10.7.3.175:3001 10.7.30.71:3002"
@@ -11,11 +11,13 @@ hdr() { echo; echo "${B}== $* ==${N}"; }
 hdr "This edge: $(hostname -s)  $(ipconfig getifaddr en0)"
 
 hdr "nginx config test"
-sudo nginx -t 2>&1
+# run the test as the user that runs nginx: root on mac3 (standby), the normal user on Mac 4. A root `nginx -t` on Mac 4
+# would chown the temp folders in var/run/nginx/ to nobody, which the user-level workers then cannot write.
+if [ "$(ps -o user= -p "$(pgrep -f "nginx: master" | head -1)" 2>/dev/null)" = root ]; then sudo -n /opt/homebrew/bin/nginx -t 2>&1; else /opt/homebrew/bin/nginx -t 2>&1; fi
 
 hdr "Is nginx running and listening on 80/443?"
-sudo brew services list | grep -E 'nginx|Name'
-sudo lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | awk 'NR==1 || /nginx/'
+{ /opt/homebrew/bin/brew services list; sudo -n /opt/homebrew/bin/brew services list; } 2>/dev/null | grep -E "nginx|Name" | sort -u   # user (Mac 4) and root (mac3 standby) services
+sudo -n /usr/sbin/lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | awk 'NR==1 || /nginx/'
 
 hdr "Files in servers/ (every one of them is loaded; old copies here cause duplicate-upstream errors)"
 ls -l "$(brew --prefix)/etc/nginx/servers/"
