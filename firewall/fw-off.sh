@@ -1,4 +1,6 @@
 #!/bin/bash
+# SUPERSEDED in Phase 2 by scripts/phase2/C-apply.sh / C-test.sh / C-rollback.sh (run from Mac 4, only
+# `sudo -n /sbin/pfctl`; this script needs `sudo bash`, which our passwordless sudo rule does not allow).
 # Extension C: turn backend isolation OFF and restore the pre-demo state.
 #   sudo bash fw-off.sh
 set -uo pipefail

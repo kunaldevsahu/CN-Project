@@ -65,5 +65,8 @@ crun() {
 
 evidence_path() { mkdir -p "$EVID/$1"; echo "$EVID/$1/$2"; }
 
+# Run a bash snippet on "local" (this Mac) or on an ssh host (mac1 / mac3), whatever its login shell is
+on() { local t="$1"; shift; if [ "$t" = local ]; then bash -s <<<"$*"; else "${SSH[@]}" "$t" bash -s <<<"$*"; fi; }
+
 # Header value from a curl -D - dump (this Mac)
 hval() { awk -F': ' -v k="$(echo "$1" | tr 'A-Z' 'a-z')" 'tolower($1)==k{gsub("\r","",$2);print $2}'; }

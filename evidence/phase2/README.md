@@ -26,6 +26,15 @@ Scripts live in `scripts/phase2/` and are re-run live on demo day. Main client =
 | `D/08-summary.txt` | Computed results: A=0 while down (27.3 s), 4 retries, recovery 3.3 s | D |
 | `D/09-spof-note.md` | Results of both runs, viva explanation, single point of failure (Mac 4 = edge + B) and fixes | D |
 | `D/run1/` | First run (52/52 × 200, recovery 3.8 s), kept for comparison; see its README for its known flaw | D |
+| `C/00-before-mac3.txt`, `C/00-before-mac4.txt` | pf before isolation: `-si` (mac3 Disabled, Mac 4 Enabled), `-sr`, empty anchor | C |
+| `C/01-apply.txt` | `pfctl -E` (token) + anchor `com.apple/team1` loaded on both, rules listed | C |
+| `C/02-tests.txt` | mac1 → :3001/:3002 time out (3.03 s), :3009 refused; edge/standby → backends 200; HTTPS A/B 8/8; block-rule counters 3 and 5 | C |
+| `C/03-mac1-client-nc-blocked.pcap` | Client side: SYN retransmits to 3001/3002 with no reply; 3009 → RST | C |
+| `C/04-mac3-en0-syn-dropped.pcap`, `C/05-mac4-en0-syn-dropped.pcap` | Backend side: the SYNs arrive, nothing is sent back (pf drop) | C |
+| `C/06-pcap-summary.txt` | The three captures decoded | C |
+| `C/07-rollback.txt` | Anchor flushed, token released, pf left as it was (mac3 off, Mac 4 on); nc works again | C |
+| `C/08-before-after-diff.txt` | Empty diffs: main ruleset, anchor, Enabled/Disabled state, `/etc/pf.conf` | C |
+| `C/09-notes.md` | Results table + viva points (timeout vs refused, BPF before pf, token, keep-state caveat) | C |
 
 ---
 

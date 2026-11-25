@@ -1,0 +1,28 @@
+# Ext C · 08 pf state BEFORE vs AFTER rollback (an empty diff = restored)
+# Date:      2026-11-25 15:22:06 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/C-rollback.sh --diff-only 20261125-152110)
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Archived state: ~/team1-pf-backup/done-20261125-152110/ on each Mac
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+## mac3
+$ diff pf-rules-before.txt pf-rules-after.txt   (sudo -n /sbin/pfctl -sr)
+   (empty diff: main ruleset identical)
+$ diff pf-anchor-before.txt pf-anchor-after.txt  (sudo -n /sbin/pfctl -a com.apple/team1 -sr)
+   (empty diff: anchor empty again)
+$ diff <(grep -oE "Status: (Enabled|Disabled)" pf-info-before.txt) <(grep -oE ... pf-info-after.txt)   (state only, not the uptime)
+   before: Status: Disabled   after: Status: Disabled
+   (empty diff: same state as before)
+$ cmp /etc/pf.conf pf.conf.original
+   (identical)
+
+## Mac 4 (this Mac)
+$ diff pf-rules-before.txt pf-rules-after.txt   (sudo -n /sbin/pfctl -sr)
+   (empty diff: main ruleset identical)
+$ diff pf-anchor-before.txt pf-anchor-after.txt  (sudo -n /sbin/pfctl -a com.apple/team1 -sr)
+   (empty diff: anchor empty again)
+$ diff <(grep -oE "Status: (Enabled|Disabled)" pf-info-before.txt) <(grep -oE ... pf-info-after.txt)   (state only, not the uptime)
+   before: Status: Enabled   after: Status: Enabled
+   (empty diff: same state as before)
+$ cmp /etc/pf.conf pf.conf.original
+   (identical)

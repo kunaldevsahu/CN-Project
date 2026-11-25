@@ -1,16 +1,16 @@
 # ---- Extension C: service isolation for Backend A (Mac 3, Himanshu, port 3001) ----
-# Loaded into the pf sub-anchor "com.apple/team1" by firewall/fw-on.sh.
-# /etc/pf.conf is NOT edited; fw-off.sh removes these rules and restores the original state.
-
-edges        = "{ 10.7.30.229 }"   # Mac 2 primary edge. (The standby edge on Mac 3 reaches 3001 over lo0.)
-backend_port = "3001"
+# Loaded into the pf sub-anchor "com.apple/team1" by scripts/phase2/C-apply.sh (sudo -n /sbin/pfctl ... -f).
+# /etc/pf.conf is NOT edited; scripts/phase2/C-rollback.sh flushes the anchor and restores the original pf state.
+#
+# Phase 2: the primary edge is Mac 4 (Kunal, 10.7.30.71). The standby edge on this Mac (Ext E) reaches 3001 over lo0.
+# No "log" keyword: pflog0 does not exist on our Macs and creating it needs sudo ifconfig (not allowed).
+# Dropped SYNs are shown with tcpdump on this Mac's en0 and with the rule counters (pfctl -a com.apple/team1 -vsr).
 
 # Traffic from this Mac to itself (lo0) is always allowed
 pass in quick on lo0 all
 
 # Only the edge may open TCP connections to the backend port
-pass in quick proto tcp from $edges to any port $backend_port
+pass in quick proto tcp from 10.7.30.71 to any port 3001
 
-# Everyone else is silently dropped (no RST), so a client sees a timeout, not "connection refused".
-# "log" copies dropped packets to pflog0 for evidence: sudo tcpdump -n -e -i pflog0
-block drop in log quick proto tcp from any to any port $backend_port
+# Everyone else is silently dropped (no RST), so a client sees a timeout, not "connection refused"
+block drop in quick proto tcp from any to any port 3001
