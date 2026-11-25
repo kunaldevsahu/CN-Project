@@ -1,0 +1,60 @@
+# Phase 1 failure demo 1 on the Phase 2 system · Wrong DNS server on the client (mac1 -> 8.8.8.8)
+# Date:      2026-11-25 15:53:24 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/phase1-failures.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Edge 10.7.30.71 (Mac 4), DNS 10.7.17.233 + 10.7.3.175; inject -> observe layer by layer -> restore -> verify
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+
+## INJECT (mac1): DNS server = 8.8.8.8 only
+before: 10.7.17.233 10.7.3.175 
+[mac1]$ sudo -n /usr/sbin/networksetup -setdnsservers Wi-Fi 8.8.8.8 && networksetup -getdnsservers Wi-Fi
+8.8.8.8
+
+(mac1 cache flushed)
+
+## 1 DNS: plain dig (which server, which status?)
+[mac1]$ dig app.team1.test | grep -E 'status:|IN[[:space:]]+SOA|SERVER:|Query time'
+;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 23714
+.			86316	IN	SOA	a.root-servers.net. nstld.verisign-grs.com. 2026112500 1800 900 604800 86400
+;; Query time: 8 msec
+;; SERVER: 8.8.8.8#53(8.8.8.8)
+
+
+## app: curl by name
+[mac1]$ curl -sS -o /dev/null https://app.team1.test/api/status; echo "curl exit=$?"
+curl: (6) Could not resolve host: app.team1.test
+curl exit=6
+
+
+## 2 IP: the edge itself is fine
+[mac1]$ ping -c 2 -q 10.7.30.71 | tail -1
+round-trip min/avg/max/stddev = 6.057/30.532/55.007/24.475 ms
+
+
+## same request with the name pinned to the right IP (bypasses DNS): works
+[mac1]$ curl -sS -o /dev/null -w 'http=%{http_code} ssl_verify=%{ssl_verify_result}\n' --resolve app.team1.test:443:10.7.30.71 https://app.team1.test/api/status
+http=200 ssl_verify=0
+
+
+## RESTORE (mac1): both team DNS servers
+[mac1]$ sudo -n /usr/sbin/networksetup -setdnsservers Wi-Fi 10.7.17.233 10.7.3.175 && networksetup -getdnsservers Wi-Fi | tr '\n' ' '; echo
+10.7.17.233 10.7.3.175 
+
+(mac1 cache flushed)
+
+## RESTORED? (from mac1)
+[mac1]$ dig +nocmd app.team1.test +noall +answer +stats | grep -E 'IN[[:space:]]+A|SERVER'
+app.team1.test.		30	IN	A	10.7.30.71
+;; SERVER: 10.7.17.233#53(10.7.17.233)
+
+[mac1]$ for i in 1 2 3 4 5 6; do h=$(curl -sS -D - -o /dev/null --max-time 8 https://$NAME/api/status 2>&1); printf "%s  #%s http=%s  x-backend=%s  x-upstream=%s  x-upstream-status=%s\n" "$(tsm)" $i "$(echo "$h" | awk "NR==1{print \$2}")" "$(echo "$h" | hv x-backend)" "$(echo "$h" | hv x-upstream)" "$(echo "$h" | hv x-upstream-status)"; sleep 0.4; done
+15:53:37.793  #1 http=200  x-backend=B  x-upstream=127.0.0.1:3002  x-upstream-status=200
+15:53:38.862  #2 http=200  x-backend=A  x-upstream=10.7.3.175:3001  x-upstream-status=200
+15:53:39.416  #3 http=200  x-backend=B  x-upstream=127.0.0.1:3002  x-upstream-status=200
+15:53:39.994  #4 http=200  x-backend=A  x-upstream=10.7.3.175:3001  x-upstream-status=200
+15:53:41.036  #5 http=200  x-backend=B  x-upstream=127.0.0.1:3002  x-upstream-status=200
+15:53:41.784  #6 http=200  x-backend=A  x-upstream=10.7.3.175:3001  x-upstream-status=200
+
+
+Layer: DNS (client configuration). The name could not be turned into an address, so nothing after DNS even started.

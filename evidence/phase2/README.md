@@ -58,6 +58,12 @@ Scripts live in `scripts/phase2/` and are re-run live on demo day. Main client =
 | `A/06-summary.txt` | Numbers: 1.01 s from primary to backup for plain dig; 5 ICMP, 8 answers from the backup | A |
 | `A/07-zone-config-check.txt`, `A/08-mac3-upstream.pcap` | mac3 forwards unknown team1.test names to 8.8.8.8 (no `local=/team1.test/`), mac1 answers itself | A |
 | `A/09-notes.md` | Results + viva points (ICMP = fast failover, identical records, launchd KeepAlive, config gap) | A |
+| `phase1-failures/00-summary.md` | The five Phase 1 failures on the Phase 2 system, Phase 1 vs Phase 2 table, DNS vs application failure | Phase 1 |
+| `phase1-failures/01-wrong-dns-server.txt` | mac1 DNS = 8.8.8.8: NXDOMAIN, curl (6); ping + `--resolve` fine; restored | Phase 1 |
+| `phase1-failures/02-wrong-ip-in-record.txt` | Record → 10.7.3.175 on both servers: refused, curl (7); restored | Phase 1 |
+| `phase1-failures/03-wrong-port.txt` | :8443 refused, :443 fine | Phase 1 |
+| `phase1-failures/04-one-backend-down.txt` | B stopped: 6/6 × 200 from A, `502, 200` retries, error.log; B restarted | Phase 1, D |
+| `phase1-failures/05-both-backends-down.txt` | A + B stopped: TLS OK, HTTP/2 502 from nginx, `no live upstreams`; both restarted | Phase 1, A |
 | `B/01-ttl-from-E.txt` | Built by `B-ttl-report.sh` from the Ext E run: TTL 30, both servers changed, server new vs client cached, flush = instant, ~37.7 s cache | B |
 
 ---

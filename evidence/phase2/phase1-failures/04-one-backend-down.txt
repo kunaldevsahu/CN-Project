@@ -1,0 +1,46 @@
+# Phase 1 failure demo 4 on the Phase 2 system · One backend down (Backend B on Mac 4)
+# Date:      2026-11-25 15:55:50 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/phase1-failures.sh 4 5)
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Edge 10.7.30.71 (Mac 4), DNS 10.7.17.233 + 10.7.3.175; inject -> observe layer by layer -> restore -> verify
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+
+## INJECT (Mac 4): stop Backend B (:3002)
+kill -INT 40556   (/opt/homebrew/bin/node server.js, = Ctrl+C)
+Backend B stopped: nothing listens on :3002
+
+## app from mac1: every request still 200, served by A; a request that tried B was retried on A
+[mac1]$ for i in 1 2 3 4 5 6; do h=$(curl -sS -D - -o /dev/null --max-time 8 https://$NAME/api/status 2>&1); printf "%s  #%s http=%s  x-backend=%s  x-upstream=%s  x-upstream-status=%s\n" "$(tsm)" $i "$(echo "$h" | awk "NR==1{print \$2}")" "$(echo "$h" | hv x-backend)" "$(echo "$h" | hv x-upstream)" "$(echo "$h" | hv x-upstream-status)"; sleep 0.4; done
+15:55:54.163  #1 http=200  x-backend=A  x-upstream=127.0.0.1:3002, 10.7.3.175:3001  x-upstream-status=502, 200
+15:55:55.180  #2 http=200  x-backend=A  x-upstream=10.7.3.175:3001  x-upstream-status=200
+15:55:55.729  #3 http=200  x-backend=A  x-upstream=127.0.0.1:3002, 10.7.3.175:3001  x-upstream-status=502, 200
+15:55:56.310  #4 http=200  x-backend=A  x-upstream=10.7.3.175:3001  x-upstream-status=200
+15:55:57.288  #5 http=200  x-backend=A  x-upstream=10.7.3.175:3001  x-upstream-status=200
+15:55:58.119  #6 http=200  x-backend=A  x-upstream=10.7.3.175:3001  x-upstream-status=200
+
+
+## nginx error.log on the edge (Mac 4), new lines
+2026/11/25 15:55:54 [error] 31234#0: *539 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.17.233, upstream: "http://127.0.0.1:3002
+2026/11/25 15:55:55 [error] 31234#0: *542 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.17.233, upstream: "http://127.0.0.1:3002
+
+## RESTORE (Mac 4): start Backend B again (nohup)
+BACKEND=B PORT=3002 nohup /opt/homebrew/bin/node server.js >> ~/team1-logs/backendB.log 2>&1 &
+Backend B listening again: node pid 40825 *:3002
+(waited 6 s: fail_timeout=5s, then nginx tries B again)
+
+## RESTORED? (from mac1)
+[mac1]$ dig +nocmd app.team1.test +noall +answer +stats | grep -E 'IN[[:space:]]+A|SERVER'
+app.team1.test.		30	IN	A	10.7.30.71
+;; SERVER: 10.7.17.233#53(10.7.17.233)
+
+[mac1]$ for i in 1 2 3 4 5 6; do h=$(curl -sS -D - -o /dev/null --max-time 8 https://$NAME/api/status 2>&1); printf "%s  #%s http=%s  x-backend=%s  x-upstream=%s  x-upstream-status=%s\n" "$(tsm)" $i "$(echo "$h" | awk "NR==1{print \$2}")" "$(echo "$h" | hv x-backend)" "$(echo "$h" | hv x-upstream)" "$(echo "$h" | hv x-upstream-status)"; sleep 0.4; done
+15:56:08.816  #1 http=200  x-backend=A  x-upstream=10.7.3.175:3001  x-upstream-status=200
+15:56:09.373  #2 http=200  x-backend=B  x-upstream=127.0.0.1:3002  x-upstream-status=200
+15:56:09.976  #3 http=200  x-backend=A  x-upstream=10.7.3.175:3001  x-upstream-status=200
+15:56:10.779  #4 http=200  x-backend=B  x-upstream=127.0.0.1:3002  x-upstream-status=200
+15:56:11.493  #5 http=200  x-backend=A  x-upstream=10.7.3.175:3001  x-upstream-status=200
+15:56:12.026  #6 http=200  x-backend=B  x-upstream=127.0.0.1:3002  x-upstream-status=200
+
+
+Layer: edge -> backend. One backend down is invisible to the client (nginx retries on the other one, passive health check).

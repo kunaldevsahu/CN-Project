@@ -1,0 +1,79 @@
+# Phase 1 failure demo 5 on the Phase 2 system · Both backends down (502 from nginx, TLS still fine)
+# Date:      2026-11-25 15:56:12 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/phase1-failures.sh 4 5)
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Edge 10.7.30.71 (Mac 4), DNS 10.7.17.233 + 10.7.3.175; inject -> observe layer by layer -> restore -> verify
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+
+## INJECT: stop Backend A (mac3) and Backend B (Mac 4)
+kill -INT 67553   (/usr/local/bin/node server.js, = Ctrl+C)
+Backend A stopped: nothing listens on :3001
+kill -INT 40825   (/opt/homebrew/bin/node server.js, = Ctrl+C)
+Backend B stopped: nothing listens on :3002
+
+## 1 DNS + 3 TCP + 4 TLS: all still fine
+[mac1]$ dig +nocmd app.team1.test +short; nc -vz -G 3 10.7.30.71 443 2>&1 | tail -1
+10.7.30.71
+Connection to 10.7.30.71 port 443 [tcp/https] succeeded!
+
+[mac1]$ curl -sv https://app.team1.test/api/status -o /dev/null 2>&1 | grep -iE '^\* (SSL connection|using HTTP)|SSL certificate verify|^< (HTTP|server|x-)'
+* SSL connection using TLSv1.3 / AEAD-CHACHA20-POLY1305-SHA256 / [blank] / UNDEF
+*  SSL certificate verify ok.
+* using HTTP/2
+< HTTP/2 502 
+< server: nginx/1.31.9
+< x-edge: mac4-primary
+< x-upstream: team1_backends
+< x-upstream-status: 502
+
+
+## 5 HTTP: the edge answers 502 itself (no X-Backend)
+[mac1]$ for i in 1 2 3 4 5 6; do h=$(curl -sS -D - -o /dev/null --max-time 8 https://$NAME/api/status 2>&1); printf "%s  #%s http=%s  x-backend=%s  x-upstream=%s  x-upstream-status=%s\n" "$(tsm)" $i "$(echo "$h" | awk "NR==1{print \$2}")" "$(echo "$h" | hv x-backend)" "$(echo "$h" | hv x-upstream)" "$(echo "$h" | hv x-upstream-status)"; sleep 0.4; done
+15:56:23.561  #1 http=502  x-backend=  x-upstream=team1_backends  x-upstream-status=502
+15:56:24.560  #2 http=502  x-backend=  x-upstream=team1_backends  x-upstream-status=502
+15:56:25.424  #3 http=502  x-backend=  x-upstream=team1_backends  x-upstream-status=502
+15:56:26.692  #4 http=502  x-backend=  x-upstream=127.0.0.1:3002, team1_backends  x-upstream-status=502, 502
+15:56:28.278  #5 http=502  x-backend=  x-upstream=10.7.3.175:3001, team1_backends  x-upstream-status=502, 502
+15:56:28.844  #6 http=502  x-backend=  x-upstream=team1_backends  x-upstream-status=502
+
+
+## nginx error.log on the edge (Mac 4), new lines
+2026/11/25 15:56:18 [error] 31234#0: *557 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.17.233, upstream: "http://10.7.3.175:300
+2026/11/25 15:56:18 [error] 31234#0: *557 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.17.233, upstream: "http://127.0.0.1:3002
+2026/11/25 15:56:20 [error] 31234#0: *561 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.17.233, upstream: "http://127.0.0.1:3002
+2026/11/25 15:56:21 [error] 31234#0: *561 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.17.233, upstream: "http://10.7.3.175:300
+2026/11/25 15:56:21 [error] 31234#0: *564 no live upstreams while connecting to upstream, client: 10.7.17.233, upstream: "http://team1_backends/api/status", host: "app.team1.test"
+2026/11/25 15:56:23 [error] 31234#0: *565 no live upstreams while connecting to upstream, client: 10.7.17.233, upstream: "http://team1_backends/", host: "app.team1.test"
+2026/11/25 15:56:23 [error] 31234#0: *566 no live upstreams while connecting to upstream, client: 10.7.17.233, upstream: "http://team1_backends/api/status", host: "app.team1.test"
+2026/11/25 15:56:24 [error] 31234#0: *567 no live upstreams while connecting to upstream, client: 10.7.17.233, upstream: "http://team1_backends/api/status", host: "app.team1.test"
+2026/11/25 15:56:25 [error] 31234#0: *568 no live upstreams while connecting to upstream, client: 10.7.17.233, upstream: "http://team1_backends/api/status", host: "app.team1.test"
+2026/11/25 15:56:26 [error] 31234#0: *569 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.17.233, upstream: "http://127.0.0.1:3002
+2026/11/25 15:56:26 [error] 31234#0: *569 no live upstreams while connecting to upstream, client: 10.7.17.233, upstream: "http://team1_backends/api/status", host: "app.team1.test"
+2026/11/25 15:56:28 [error] 31234#0: *571 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.17.233, upstream: "http://10.7.3.175:300
+2026/11/25 15:56:28 [error] 31234#0: *571 no live upstreams while connecting to upstream, client: 10.7.17.233, upstream: "http://team1_backends/api/status", host: "app.team1.test"
+2026/11/25 15:56:28 [error] 31234#0: *573 no live upstreams while connecting to upstream, client: 10.7.17.233, upstream: "http://team1_backends/api/status", host: "app.team1.test"
+
+## RESTORE: start both backends
+BACKEND=A PORT=3001 nohup /usr/local/bin/node server.js >> ~/team1-logs/backendA.log 2>&1 &
+Backend A listening again: node pid 67608 *:3001
+BACKEND=B PORT=3002 nohup /opt/homebrew/bin/node server.js >> ~/team1-logs/backendB.log 2>&1 &
+Backend B listening again: node pid 40972 *:3002
+(waited 6 s for fail_timeout)
+
+## RESTORED? (from mac1)
+[mac1]$ dig +nocmd app.team1.test +noall +answer +stats | grep -E 'IN[[:space:]]+A|SERVER'
+app.team1.test.		30	IN	A	10.7.30.71
+;; SERVER: 10.7.17.233#53(10.7.17.233)
+
+[mac1]$ for i in 1 2 3 4 5 6; do h=$(curl -sS -D - -o /dev/null --max-time 8 https://$NAME/api/status 2>&1); printf "%s  #%s http=%s  x-backend=%s  x-upstream=%s  x-upstream-status=%s\n" "$(tsm)" $i "$(echo "$h" | awk "NR==1{print \$2}")" "$(echo "$h" | hv x-backend)" "$(echo "$h" | hv x-upstream)" "$(echo "$h" | hv x-upstream-status)"; sleep 0.4; done
+15:56:44.301  #1 http=200  x-backend=A  x-upstream=10.7.3.175:3001  x-upstream-status=200
+15:56:45.534  #2 http=200  x-backend=B  x-upstream=127.0.0.1:3002  x-upstream-status=200
+15:56:46.425  #3 http=200  x-backend=A  x-upstream=10.7.3.175:3001  x-upstream-status=200
+15:56:47.125  #4 http=200  x-backend=B  x-upstream=127.0.0.1:3002  x-upstream-status=200
+15:56:47.658  #5 http=200  x-backend=A  x-upstream=10.7.3.175:3001  x-upstream-status=200
+15:56:48.503  #6 http=200  x-backend=B  x-upstream=127.0.0.1:3002  x-upstream-status=200
+
+
+Layer: application behind the edge. DNS, TCP, TLS and HTTP/2 all work; the edge reports 502 because no backend answers.
+Compare demo 1 (DNS failure): there the name did not resolve at all. That is the difference between a DNS and an application failure.

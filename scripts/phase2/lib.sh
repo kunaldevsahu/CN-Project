@@ -66,7 +66,28 @@ crun() {
 evidence_path() { mkdir -p "$EVID/$1"; echo "$EVID/$1/$2"; }
 
 # Run a bash snippet on "local" (this Mac) or on an ssh host (mac1 / mac3), whatever its login shell is
-on() { local t="$1"; shift; if [ "$t" = local ]; then bash -s <<<"$*"; else "${SSH[@]}" "$t" bash -s <<<"$*"; fi; }
+# (local: bash -c, NOT bash -s <<<: with a seekable here-string, a background job started by the snippet shares the
+#  read offset and bash loses its place in the script -> "unexpected EOF". Over ssh, stdin is a pipe, so -s is fine.)
+on() { local t="$1"; shift; if [ "$t" = local ]; then bash -c "$*"; else "${SSH[@]}" "$t" bash -s <<<"$*"; fi; }
+
+# Stop / start a backend:  backend stop|start A|B   (A = mac3 :3001, B = this Mac :3002)
+# stop = SIGINT (Ctrl+C) to whatever listens on the port; start = nohup node server.js, log + pid in ~/team1-logs/
+backend() {
+  local act="$1" b="$2" host port node
+  if [ "$b" = A ]; then host=mac3; port=3001; node=/usr/local/bin/node; else host=local; port=3002; node=/opt/homebrew/bin/node; fi
+  if [ "$act" = stop ]; then on "$host" "pid=\$(lsof -t -nP -iTCP:$port -sTCP:LISTEN)
+    if [ -n \"\$pid\" ]; then echo \"kill -INT \$pid   (\$(ps -o command= -p \$pid), = Ctrl+C)\"; kill -INT \$pid
+      for i in \$(seq 1 30); do lsof -t -nP -iTCP:$port -sTCP:LISTEN >/dev/null || break; sleep 0.1; done; fi
+    lsof -nP -iTCP:$port -sTCP:LISTEN >/dev/null && echo 'still listening!' || echo 'Backend $b stopped: nothing listens on :$port'"
+  else on "$host" "mkdir -p ~/team1-logs; cd ~/cn-backend || exit 1
+    if lsof -nP -iTCP:$port -sTCP:LISTEN >/dev/null; then echo 'Backend $b already running'; exit 0; fi
+    echo 'BACKEND=$b PORT=$port nohup $node server.js >> ~/team1-logs/backend$b.log 2>&1 &'
+    BACKEND=$b PORT=$port nohup $node server.js >> ~/team1-logs/backend$b.log 2>&1 < /dev/null &
+    echo \$! > ~/team1-logs/backend$b.pid
+    for i in \$(seq 1 50); do lsof -nP -iTCP:$port -sTCP:LISTEN >/dev/null && break; sleep 0.1; done
+    echo \"Backend $b listening again: \$(lsof -nP -iTCP:$port -sTCP:LISTEN | awk 'NR==2{print \$1, \"pid\", \$2, \$9}')\""
+  fi
+}
 
 # Header value from a curl -D - dump (this Mac)
 hval() { awk -F': ' -v k="$(echo "$1" | tr 'A-Z' 'a-z')" 'tolower($1)==k{gsub("\r","",$2);print $2}'; }

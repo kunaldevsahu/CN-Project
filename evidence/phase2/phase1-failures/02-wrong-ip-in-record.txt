@@ -1,0 +1,68 @@
+# Phase 1 failure demo 2 on the Phase 2 system · DNS record points to the wrong IP (10.7.3.175, no web server)
+# Date:      2026-11-25 15:53:42 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/phase1-failures.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Edge 10.7.30.71 (Mac 4), DNS 10.7.17.233 + 10.7.3.175; inject -> observe layer by layer -> restore -> verify
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+
+## precondition: mac3 has no web server on 443 (standby edge stopped)
+$ nc -vz -G 2 10.7.3.175 443
+nc: connectx to 10.7.3.175 port 443 (tcp) failed: Connection refused
+
+## INJECT (mac1 + mac3, both DNS servers): app/api -> 10.7.3.175 (wrong Mac)
+15:53:45  app.team1.test -> 10.7.3.175  (dnsmasq reloaded on Vaibhavs-MacBook-Air-5)
+15:53:45  app.team1.test -> 10.7.3.175  (dnsmasq reloaded on Himanshus-MacBook-Pro)
+15:53:46  @10.7.17.233  app.team1.test. 30 IN A 10.7.3.175
+15:53:47  @10.7.17.233  api.team1.test. 30 IN A 10.7.3.175
+15:53:47  @10.7.3.175   app.team1.test. 30 IN A 10.7.3.175
+15:53:47  @10.7.3.175   api.team1.test. 30 IN A 10.7.3.175
+(mac1 cache flushed)
+
+## 1 DNS: resolves, but to the wrong address
+[mac1]$ dig +nocmd app.team1.test +short; dscacheutil -q host -a name app.team1.test | grep ip_address
+10.7.3.175
+ip_address: 10.7.3.175
+
+
+## 2 IP: that host is up
+[mac1]$ ping -c 2 -q 10.7.3.175 | tail -1
+round-trip min/avg/max/stddev = 9.372/51.788/94.204/42.416 ms
+
+
+## 3 TCP: nothing listens on 443 there -> RST, refused at once
+[mac1]$ nc -vz -G 3 10.7.3.175 443 2>&1 | tail -1
+nc: connectx to 10.7.3.175 port 443 (tcp) failed: Connection refused
+
+
+## app: curl
+[mac1]$ curl -sS -o /dev/null -w 'http=%{http_code}\n' https://app.team1.test/api/status; echo "curl exit=$?"
+curl: (7) Failed to connect to app.tehttp=000
+curl exit=7
+am1.test port 443 after 1035 ms: Couldn't connect to server
+
+
+## RESTORE: record back to 10.7.30.71 on both DNS servers
+15:53:56  app.team1.test -> 10.7.30.71  (dnsmasq reloaded on Vaibhavs-MacBook-Air-5)
+15:53:57  app.team1.test -> 10.7.30.71  (dnsmasq reloaded on Himanshus-MacBook-Pro)
+15:53:58  @10.7.17.233  app.team1.test. 30 IN A 10.7.30.71
+15:53:58  @10.7.17.233  api.team1.test. 30 IN A 10.7.30.71
+15:53:59  @10.7.3.175   app.team1.test. 30 IN A 10.7.30.71
+15:53:59  @10.7.3.175   api.team1.test. 30 IN A 10.7.30.71
+(mac1 cache flushed)
+
+## RESTORED? (from mac1)
+[mac1]$ dig +nocmd app.team1.test +noall +answer +stats | grep -E 'IN[[:space:]]+A|SERVER'
+app.team1.test.		30	IN	A	10.7.30.71
+;; SERVER: 10.7.17.233#53(10.7.17.233)
+
+[mac1]$ for i in 1 2 3 4 5 6; do h=$(curl -sS -D - -o /dev/null --max-time 8 https://$NAME/api/status 2>&1); printf "%s  #%s http=%s  x-backend=%s  x-upstream=%s  x-upstream-status=%s\n" "$(tsm)" $i "$(echo "$h" | awk "NR==1{print \$2}")" "$(echo "$h" | hv x-backend)" "$(echo "$h" | hv x-upstream)" "$(echo "$h" | hv x-upstream-status)"; sleep 0.4; done
+15:54:03.542  #1 http=200  x-backend=B  x-upstream=127.0.0.1:3002  x-upstream-status=200
+15:54:04.151  #2 http=200  x-backend=A  x-upstream=10.7.3.175:3001  x-upstream-status=200
+15:54:04.897  #3 http=200  x-backend=B  x-upstream=127.0.0.1:3002  x-upstream-status=200
+15:54:06.196  #4 http=200  x-backend=A  x-upstream=10.7.3.175:3001  x-upstream-status=200
+15:54:06.977  #5 http=200  x-backend=B  x-upstream=127.0.0.1:3002  x-upstream-status=200
+15:54:07.746  #6 http=200  x-backend=A  x-upstream=10.7.3.175:3001  x-upstream-status=200
+
+
+Layer: DNS data (record). dig answers, but with the wrong IP; TCP to that IP is refused. dig is right only if it matches the plan.

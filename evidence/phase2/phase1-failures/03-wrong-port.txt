@@ -1,0 +1,44 @@
+# Phase 1 failure demo 3 on the Phase 2 system · Wrong destination port (8443)
+# Date:      2026-11-25 15:54:08 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/phase1-failures.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Edge 10.7.30.71 (Mac 4), DNS 10.7.17.233 + 10.7.3.175; inject -> observe layer by layer -> restore -> verify
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+
+## INJECT: nothing on the edge, the CLIENT uses the wrong port (8443)
+
+## 3 TCP: same host, two ports
+[mac1]$ nc -vz -G 3 10.7.30.71 443 2>&1 | tail -1; nc -vz -G 3 10.7.30.71 8443 2>&1 | tail -1
+Connection to 10.7.30.71 port 443 [tcp/https] succeeded!
+nc: connectx to 10.7.30.71 port 8443 (tcp) failed: Connection refused
+
+
+## app
+[mac1]$ curl -sS -o /dev/null -w 'http=%{http_code}\n' https://app.team1.test:8443/api/status; echo "curl exit=$?"
+http=000
+curl exit=7
+curl: (7) Failed to connect to app.team1.test port 8443 after 941 ms: Couldn't connect to server
+
+[mac1]$ curl -sS -o /dev/null -w 'http=%{http_code}\n' https://app.team1.test/api/status; echo "curl exit=$?   (443)"
+http=200
+curl exit=0   (443)
+
+
+## RESTORE: nothing to undo (use 443)
+
+## RESTORED? (from mac1)
+[mac1]$ dig +nocmd app.team1.test +noall +answer +stats | grep -E 'IN[[:space:]]+A|SERVER'
+app.team1.test.		30	IN	A	10.7.30.71
+;; SERVER: 10.7.17.233#53(10.7.17.233)
+
+[mac1]$ for i in 1 2 3 4 5 6; do h=$(curl -sS -D - -o /dev/null --max-time 8 https://$NAME/api/status 2>&1); printf "%s  #%s http=%s  x-backend=%s  x-upstream=%s  x-upstream-status=%s\n" "$(tsm)" $i "$(echo "$h" | awk "NR==1{print \$2}")" "$(echo "$h" | hv x-backend)" "$(echo "$h" | hv x-upstream)" "$(echo "$h" | hv x-upstream-status)"; sleep 0.4; done
+15:54:16.677  #1 http=200  x-backend=B  x-upstream=127.0.0.1:3002  x-upstream-status=200
+15:54:17.203  #2 http=200  x-backend=A  x-upstream=10.7.3.175:3001  x-upstream-status=200
+15:54:17.711  #3 http=200  x-backend=B  x-upstream=127.0.0.1:3002  x-upstream-status=200
+15:54:18.703  #4 http=200  x-backend=A  x-upstream=10.7.3.175:3001  x-upstream-status=200
+15:54:19.241  #5 http=200  x-backend=B  x-upstream=127.0.0.1:3002  x-upstream-status=200
+15:54:20.342  #6 http=200  x-backend=A  x-upstream=10.7.3.175:3001  x-upstream-status=200
+
+
+Layer: transport (port). The IP picks the machine, the port picks the service; nothing listens on 8443 -> RST -> refused.
