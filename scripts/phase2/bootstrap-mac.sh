@@ -80,4 +80,4 @@ else
   echo "   not a DNS Mac (no $H), nothing to do"
 fi
 
-echo; echo "== Done. Tell Claude 'next'."
+echo; echo "== Done. This Mac is ready."
