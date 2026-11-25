@@ -11,6 +11,10 @@ Scripts live in `scripts/phase2/` and are re-run live on demo day. Main client =
 | `edge-move/02-pre-dns-check.txt` | Before any DNS change: nginx -t OK, :443 listening, cert chain OK, mac1 → `--resolve` → 10 × 200 A/B via `mac4-primary` (CA not yet trusted on mac1, so `--cacert`, never `-k`) | setup |
 | `edge-move/03-set-record.txt` | app/api → 10.7.30.71 on BOTH DNS servers at 15:01:50, both answer TTL 30 | setup, B |
 | `edge-move/04-post-dns-check.txt` | mac1 by name: dig both servers + system resolver = 10.7.30.71, HTTPS trusted via keychain only, 10 × 200 A/B | setup |
+| `baseline/01-dns.txt` | Plain `dig` on mac1: NOERROR, `aa`, TTL 30, `SERVER: 10.7.17.233`; dscacheutil agrees | baseline, A, B |
+| `baseline/02-https.txt` | HTTP :80 → 301 to HTTPS; TLS 1.3 + HTTP/2, cert issuer `Team1 Local Root CA 2026-11`, `ssl_verify_result=0` without `-k` | baseline |
+| `baseline/03-lb-loop.txt` | 10 timestamped requests: strict A/B alternation, A=5 B=5, all via `mac4-primary` | baseline, D |
+| `baseline/04-cache-304.txt` | `/api/status` no-store; `/api/cached` `public, max-age=60` + identical ETag from A and B; `If-None-Match` → 304 (both backends), wrong ETag → 200 | baseline |
 
 ---
 
