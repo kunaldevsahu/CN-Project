@@ -22,12 +22,14 @@ Client (Mac 1 / Mac 4)
 | `docs/RUNBOOK.md` | Session start, IP-change fixes, layer-by-layer diagnosis |
 | `evidence/` | Terminal outputs from the build and failure tests, Wireshark captures, checklist |
 | `dns/phase2/` | Phase 2 dnsmasq config (same file on primary Mac 1 and backup Mac 3), `team1.hosts` records, `set-record.sh` |
-| `nginx/phase2/team1.conf` | Phase 2 edge config (same file on primary Mac 2 and standby Mac 3): failover tuning, evidence headers, upstream log |
-| `firewall/` | pf rules isolating the backends + `fw-on.sh` / `fw-off.sh` (with rollback copy) |
+| `nginx/phase2/team1.conf` · `team1-standby.conf` | Phase 2 edge configs: primary on Mac 4, standby on Mac 3 (failover tuning, evidence headers, per-request upstream log) |
+| `firewall/` | pf rules isolating the backends (loaded by `scripts/phase2/C-apply.sh`; `fw-on.sh` / `fw-off.sh` superseded) |
 | `certs/make-standby-cert.sh` | Second leaf certificate for the standby edge, signed by the same CA |
-| `scripts/` | `diagnose.sh` (client, layer by layer), `diagnose-edge.sh`, `watch-dns.sh` (TTL/cutover), `lb-check.sh` (failover) |
+| `scripts/` | `diagnose.sh` (client, PASS/FAIL per layer), `diagnose-edge.sh`, `watch-dns.sh` (TTL/cutover), `lb-check.sh` (failover) |
+| `scripts/phase2/` | One script per Phase 2 test (run on Mac 4, writes timestamped evidence), `bootstrap-mac.sh`, `set-record-both.sh`, `health.sh`, shared `lib.sh` |
+| `evidence/phase2/` | Phase 2 evidence per extension (A–F, baseline, edge move, Phase 1 failures); index in its `README.md` |
 | `docs/PHASE2-SETUP.md` | Phase 2 build + test steps per extension (A–F) |
-| `docs/PHASE2-DEMO.md` · `docs/FAULTS.md` · `docs/PHASE2-REPORT.md` | Review 2 run sheet + viva prep · fault drills · final report draft |
+| `docs/PHASE2-DEMO.md` · `docs/FAULTS.md` · `docs/PHASE2-REPORT.md` | Review 2 run sheet (scripts, order, quick fixes, viva) · fault drills · final report with measured results |
 
 The architecture document (topology, request flow, layer mapping, packet evidence) is a separate shared doc.
 
@@ -35,10 +37,12 @@ The architecture document (topology, request flow, layer mapping, packet evidenc
 
 ```
 Client ── DNS :53 ──► Mac 1 dnsmasq (primary)  |  Mac 3 dnsmasq (backup)       Ext A, B
-       └─ HTTPS :443 ► Mac 2 nginx (primary)   |  Mac 3 nginx (standby, DNS cutover)  Ext D, E
+       └─ HTTPS :443 ► Mac 4 nginx (primary)   |  Mac 3 nginx (standby, DNS cutover)  Ext D, E
                           ├─ :3001 ► Mac 3 Backend A ┐ pf: only the edges may connect  Ext C
-                          └─ :3002 ► Mac 4 Backend B ┘
+                          └─ :3002 ► Mac 4 Backend B ┘ (Mac 4's own nginx uses 127.0.0.1)
 ```
+Pranav's Mac 2 was not available for Phase 2, so the edge moved to Mac 4 (`evidence/phase2/edge-move/`).
+
 Start with `docs/PHASE2-SETUP.md`. Phase 1 configs are kept unchanged in `dns/dnsmasq.conf` and `nginx/team1.conf`.
 
 ## Endpoints

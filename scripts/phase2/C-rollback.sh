@@ -59,4 +59,4 @@ OUT="$(evidence_path C 07-rollback.txt)"
   crun "for hp in 10.7.3.175:3001 10.7.30.71:3002; do echo \"\$(tsm)  nc -vz -G 3 \${hp%:*} \${hp#*:}: \$(nc -vz -G 3 \${hp%:*} \${hp#*:} 2>&1 | tail -1)\"; done"
 } 2>&1 | tee "$OUT"
 diff_report
-echo "(saved: evidence/phase2/C/07-rollback.txt 08-before-after-diff.txt)"
+echo "(saved in $EVID/C/: 07-rollback.txt 08-before-after-diff.txt)"

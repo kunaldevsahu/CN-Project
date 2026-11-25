@@ -106,4 +106,4 @@ pcap_summary() {  # only packets about OUR name: queries for app.team1.test, the
          split(first[$8], a, ":"); split($1, b, ":"); printf "  id %s: primary at %s, backup at %s = %.2f s later\n", $8, first[$8], $1, (b[1]*3600+b[2]*60+b[3]) - (a[1]*3600+a[2]*60+a[3]) }' \
       <(sed 's/^  //' "$A/04-pcap-summary.txt")
 } 2>&1 | tee "$A/06-summary.txt"
-echo "(evidence in evidence/phase2/A/)"
+echo "(evidence in $A/)"

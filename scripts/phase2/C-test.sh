@@ -69,4 +69,4 @@ rd() { tcpdump -nn -r "$1" "${@:2}" 2>/dev/null; }
   echo "Reading: tcpdump (BPF) sees an incoming packet BEFORE pf filters it, so the SYN shows up on the backend Mac,"
   echo "but pf drops it and the kernel never answers: no SYN-ACK, no RST. The client retransmits and nc gives up after 3 s."
 } 2>&1 | tee "$C/06-pcap-summary.txt"
-echo "(saved: evidence/phase2/C/02-tests.txt 03-05 pcaps 06-pcap-summary.txt)"
+echo "(saved in $EVID/C/: 02-tests.txt 03-05 pcaps 06-pcap-summary.txt)"

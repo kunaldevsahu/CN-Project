@@ -179,4 +179,4 @@ if [ "$KEEP_STANDBY" = 1 ]; then ev "KEEP_STANDBY=1: standby left running"
 else bash "$REPO/scripts/phase2/E-standby.sh" down >/dev/null 2>&1; ev "standby stopped (13-standby-down.txt)"; fi
 flush "$CLIENT" >/dev/null; flush mac3 >/dev/null
 ev "final: $CLIENT -> $("${SSH[@]}" "$CLIENT" "curl -s -o /dev/null -D - -w 'IP=%{remote_ip}' https://$NAME/api/status | tr -d '\r' | awk '/^HTTP/{c=\$2} tolower(\$1)==\"x-edge:\"{e=\$2} /IP=/{sub(/.*IP=/,\"\"); i=\$0} END{print c, e, i}'")"
-rm -rf "$TMP"; echo "(evidence in evidence/phase2/E/)"
+rm -rf "$TMP"; echo "(evidence in $E/)"

@@ -4,7 +4,8 @@
 # and the output (with a header and timestamps) is tee'd into evidence/phase2/<EXT>/.
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-EVID="$REPO/evidence/phase2"
+# Where evidence is written. Demo day: EVID=~/demo-day bash scripts/phase2/<script>.sh keeps the committed evidence intact.
+EVID="${EVID:-$REPO/evidence/phase2}"
 
 NAME="${NAME:-app.team1.test}"
 EDGE_IP="10.7.30.71"        # Mac 4, Kunal: primary edge + Backend B :3002

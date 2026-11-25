@@ -3,16 +3,34 @@
 Builds on the Phase 1 network; nothing is rebuilt. Do the steps in this order: each one assumes the previous one works.
 Run `docs/RUNBOOK.md` first (IPs unchanged, A/B alternating) before starting.
 
-## Phase 2 roles
+## As built (2026-11-25): read this first
+Pranav's **Mac 2 was not available** for Phase 2, so the **edge moved to Mac 4** (Kunal) and Mac 1 became the main test
+client. The steps further down are the original plan (edge on Mac 2) and are kept for the reasoning; where they name
+Mac 2 / 10.7.30.229, read Mac 4 / 10.7.30.71. What was actually done, and the script for each part:
 
-| Machine | Member | IP | Phase 1 role | Added in Phase 2 |
+| Part | As built | Script / file |
+|---|---|---|
+| One-time per Mac | passwordless `sudo -n` for 10 programs, trust the CA, `team1.hosts` owned by the user | `sudo bash scripts/phase2/bootstrap-mac.sh` (at each Mac) |
+| TLS | new CA "Team1 Local Root CA 2026-11" + edge cert on Mac 4; standby cert for mac3 from the same CA | `certs/make-certs.sh`, `certs/make-standby-cert.sh` |
+| Edge | nginx on Mac 4 as a user LaunchAgent (`brew services start nginx`), config `nginx/phase2/team1.conf` (A = 10.7.3.175:3001, B = 127.0.0.1:3002) | `scripts/phase2/edge-move-check.sh pre\|post` |
+| Records | app/api → 10.7.30.71, both DNS servers at once | `scripts/phase2/set-record-both.sh <name> <ip>` |
+| Standby edge | nginx on mac3 **as root** (Local Network privacy blocks a user-level nginx over ssh), config `nginx/phase2/team1-standby.conf` | `scripts/phase2/E-standby.sh up\|down\|check` |
+| Ext A–F tests | one script each, evidence in `evidence/phase2/<ext>/` | see `docs/PHASE2-DEMO.md` and `evidence/phase2/README.md` |
+| pf (Ext C) | anchor `com.apple/team1`, only `sudo -n /sbin/pfctl`; `fw-on.sh`/`fw-off.sh` are superseded | `C-apply.sh`, `C-test.sh`, `C-rollback.sh` |
+| Diagnosis | PASS/FAIL per layer from a client; edge-side checks | `scripts/diagnose.sh`, `scripts/diagnose-edge.sh`, `scripts/phase2/F-drill.sh` |
+
+## Phase 2 roles (as built)
+
+| Machine | Member | IP | Phase 1 role | Phase 2 |
 |---|---|---|---|---|
-| Mac 1 | Vaibhav | 10.7.17.233 | dnsmasq primary + client | records moved to `team1.hosts`, TTL 30 s |
-| Mac 2 | Pranav | 10.7.30.229 | nginx edge (primary) | HA config + evidence headers; signs the standby cert |
+| Mac 1 | Vaibhav | 10.7.17.233 | dnsmasq primary + client | primary DNS (`team1.hosts`, TTL 30) · **main test client** |
+| Mac 2 | Pranav | 10.7.30.229 | nginx edge (primary) | **not available**; its role moved to Mac 4 |
 | Mac 3 | Himanshu | 10.7.3.175 | Backend A :3001 | **backup DNS** (Ext A) · **standby edge** (Ext E) · pf rule on 3001 (Ext C) |
-| Mac 4 | Kunal | 10.7.30.71 | Backend B :3002 + capture client | test client for every demo · pf rule on 3002 (Ext C) |
+| Mac 4 | Kunal | 10.7.30.71 | Backend B :3002 + capture client | **primary edge (nginx :443)** + Backend B · runs all test scripts · pf rule on 3002 (Ext C) |
 
-Why Mac 3 for both backup DNS and standby edge: Mac 4 is our capture client, and traffic from a Mac to itself goes over `lo0`, which Wireshark on `en0` cannot see. Trade-off (say it in the viva): Mac 3 is now a *shared failure domain*; if it dies we lose Backend A, the backup DNS and the standby edge together. Any **single** other Mac can still fail without a lasting outage.
+Trade-offs (say them in the viva): **Mac 4 is edge + Backend B** (shared fate: if it dies, the edge and one backend go
+together). **Mac 3 is a shared failure domain**: Backend A, the backup DNS and the standby edge. Mac 1 is both client and
+primary DNS, so its own lookups go over `lo0` (captures on mac1 use `-i pktap,en0,lo0`).
 
 Paths assume Apple-silicon Homebrew (`/opt/homebrew`). On an Intel Mac replace with `/usr/local` in the configs.
 

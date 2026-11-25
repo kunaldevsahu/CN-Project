@@ -55,4 +55,4 @@ for m in mac3 local; do
   n=$([ $m = local ] && echo mac4 || echo $m)
   { header "Ext C · 00 pf state BEFORE isolation on $n (saved by C-apply.sh)"; on $m "$before_snippet"; } > "$(evidence_path C "00-before-$n.txt")" 2>&1
 done
-echo "(saved: evidence/phase2/C/00-before-mac3.txt 00-before-mac4.txt 01-apply.txt)"
+echo "(saved in $EVID/C/: 00-before-mac3.txt 00-before-mac4.txt 01-apply.txt)"
