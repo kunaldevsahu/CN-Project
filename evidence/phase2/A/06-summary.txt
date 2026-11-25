@@ -1,0 +1,34 @@
+# Ext A · 06 summary
+# Date:      2026-11-25 15:46:24 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/A-backup-dns.sh )
+# Client:    mac3 = Himanshus-MacBook-Pro 10.7.3.175
+# Every command is printed before its output: '$ ' = this Mac, '[mac3]$ ' = the client.
+
+  15:45:42.381  STOP primary DNS on mac1: $ sudo -n /opt/homebrew/bin/brew services stop dnsmasq
+  15:46:06.007  START primary DNS on mac1: $ sudo -n /opt/homebrew/bin/brew services start dnsmasq
+## Primary DOWN (02-primary-down-client.txt)
+  ;; connection timed out; no servers could be reached
+  ## mac3 (cache flushed): plain dig tries 10.7.17.233 first, gets refused, uses 10.7.3.175
+  cache flushed on Himanshus-MacBook-Pro
+  ;; SERVER: 10.7.3.175#53(10.7.3.175)
+  (dig took 1.05 s)
+  15:45:57.190  #1 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=A DNS=0.004326 TOTAL=0.483673
+  15:45:57.649  #2 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=B DNS=0.003430 TOTAL=0.060261
+  15:45:58.094  #3 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=A DNS=0.004004 TOTAL=0.051457
+  15:45:58.528  #4 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=B DNS=0.005984 TOTAL=0.048911
+  ## mac1, the main client, is affected too (it lists itself first): also falls back to the backup
+  cache flushed on Vaibhavs-MacBook-Air-5
+  ;; SERVER: 10.7.3.175#53(10.7.3.175)
+  (dig took 1.05 s)
+  15:46:03.848  #1 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=B DNS=0.003234 TOTAL=0.037743
+  15:46:04.612  #2 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=A DNS=0.002717 TOTAL=0.383030
+  15:46:05.049  #3 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=B DNS=0.003180 TOTAL=0.058244
+  15:46:05.632  #4 http=200 ip=10.7.30.71 x-edge=mac4-primary x-backend=A DNS=0.002913 TOTAL=0.200338
+## Primary back (05-restore.txt)
+  ;; SERVER: 10.7.17.233#53(10.7.17.233)
+  ;; SERVER: 10.7.17.233#53(10.7.17.233)
+  (dig took 0.04 s)
+## On the wire (04-pcap-summary.txt), only packets about app.team1.test:
+  5 ICMP port-unreachable from mac1 for our queries, 8 answers from the backup, 0 of our queries forwarded to the internet by mac3
+## Plain dig: from asking the primary to asking the backup (same DNS id)
+  id 10858: primary at 15:45:52.003, backup at 15:45:53.014 = 1.01 s later

@@ -1,0 +1,17 @@
+# Ext A · 00 events (this Mac's clock, ms)
+# Date:      2026-11-25 15:45:28 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/A-backup-dns.sh )
+# Client:    mac3 = Himanshus-MacBook-Pro 10.7.3.175
+# Primary DNS = mac1 10.7.17.233, backup = mac3 10.7.3.175; client = mac3 (+ mac1)
+# Every command is printed before its output: '$ ' = this Mac, '[mac3]$ ' = the client.
+
+15:45:42.363  tcpdump on mac3: $ sudo -n /usr/sbin/tcpdump -i pktap,en0,lo0 -U -Z <user> -w ~/team1-logs/A-mac3.pcap 'port 53 or icmp'
+15:45:42.381  STOP primary DNS on mac1: $ sudo -n /opt/homebrew/bin/brew services stop dnsmasq
+                ↳ ==> Successfully stopped `dnsmasq` (label: sh.brew.dnsmasq)
+                ↳ no dnsmasq process on mac1
+15:45:46.688  primary from this Mac: ;; connection timed out; no servers could be reached
+15:46:06.007  START primary DNS on mac1: $ sudo -n /opt/homebrew/bin/brew services start dnsmasq
+                ↳ ==> Successfully started `dnsmasq` (label: sh.brew.dnsmasq)
+                ↳ 21344 dnsmasq
+                ↳ dnsmasq started         root /Library/LaunchDaemons/sh.brew.dnsmasq.plist
+15:46:23.320  tcpdump stopped, pcap -> evidence/phase2/A/03-mac3-client-dns-icmp.pcap

@@ -1,0 +1,52 @@
+# Ext B · 01 TTL and a controlled record change (lines copied from the Ext E evidence, see the file names)
+# Date:      2026-11-25 15:47:54 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/B-ttl-report.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+## 1. The TTL every client gets: 30 s (baseline/01-dns.txt)
+   app.team1.test.		30	IN	A	10.7.30.71
+   ;; SERVER: 10.7.17.233#53(10.7.17.233)
+
+## 2. The change, on BOTH servers in the same second (E/05-set-record-to-standby.txt)
+   15:34:25  app.team1.test -> 10.7.3.175  (dnsmasq reloaded on Vaibhavs-MacBook-Air-5)
+   15:34:25  app.team1.test -> 10.7.3.175  (dnsmasq reloaded on Himanshus-MacBook-Pro)
+   15:34:26  @10.7.17.233  app.team1.test. 30 IN A 10.7.3.175
+   15:34:26  @10.7.17.233  api.team1.test. 30 IN A 10.7.3.175
+   15:34:26  @10.7.3.175   app.team1.test. 30 IN A 10.7.3.175
+   15:34:26  @10.7.3.175   api.team1.test. 30 IN A 10.7.3.175
+
+## 3. mac1 WITHOUT flushing: the server answers the new IP at once, curl keeps the cached old IP (E/04-client-loop-cutover.txt)
+   15:34:24.004  t+18  server=10.7.30.71  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=A 
+   15:34:25.154  t+19  server=10.7.30.71  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B 
+   15:34:26.586  t+20  server=10.7.3.175  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=A   <- OS cache still has the old IP
+   15:34:27.996  t+22  server=10.7.3.175  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B   <- OS cache still has the old IP
+   ... (11 more lines: server new, curl old)
+   15:34:42.883  t+36  server=10.7.3.175  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=A   <- OS cache still has the old IP
+   15:34:44.030  t+38  server=10.7.3.175  curl->10.7.30.71  http=200 x-edge=mac4-primary  x-backend=B   <- OS cache still has the old IP
+   15:34:45.324  t+39  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=B 
+   15:34:46.463  t+40  server=10.7.3.175  curl->10.7.3.175  http=200 x-edge=mac3-standby  x-backend=A 
+
+## 4. Why: mac1's own DNS lookups in the capture (E/08-pcap-summary.txt)
+   15:34:06.202  asked 10.7.17.233 -> 10.7.30.71   first lookup after the cache flush
+   15:34:43.953  asked 10.7.17.233 -> 10.7.3.175   37.75 s after the previous lookup
+   15:35:21.604  asked 10.7.17.233 -> 10.7.3.175   37.65 s after the previous lookup
+   15:35:59.333  asked 10.7.17.233 -> 10.7.30.71   37.73 s after the previous lookup
+
+## 5. mac3 as a client: cached vs FLUSHED (E/06-mac3-as-client.txt)
+   ## Before the change: flush + one request (fills mac3's cache with 10.7.30.71)
+   15:34:18.914  OS resolver: 10.7.30.71   curl -> 10.7.30.71  http=200  x-edge=mac4-primary
+   ## Right after the change, NO flush: mac3 still uses its cached answer (old edge)
+   15:34:29.230  OS resolver: 10.7.30.71   curl -> 10.7.30.71  http=200  x-edge=mac4-primary
+   ## Flush mac3's cache, ask again: new edge at once
+   15:34:30.643  OS resolver: 10.7.3.175   curl -> 10.7.3.175  http=200  x-edge=mac3-standby
+
+## 6. Numbers (E/10-summary.txt)
+   curl connected to the NEW edge from:  15:34:45.324  = 21.3 s after the change
+   requests: 33   non-200: 0   record restored 15:35:37.336, client back on 10.7.30.71 from 15:36:00.682 = 23.3 s later
+   -> before the change: old edge; after the change WITHOUT flush: still the old edge (cache); after a flush: new edge at once
+   time between mac1 lookups during the whole test: 37.75 37.65 37.73 s
+
+Reading: TTL is set by the server but enforced by every cache. dig asks the server, so it shows the new IP at once;
+curl/browsers use the OS cache (mDNSResponder) and keep the old answer until it expires. A manual flush forces a new
+lookup. On these Macs the cached answer lived ~37.7 s with TTL 30, so lower the TTL well before a planned change.

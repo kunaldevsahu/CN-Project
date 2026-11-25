@@ -49,6 +49,16 @@ Scripts live in `scripts/phase2/` and are re-run live on demo day. Main client =
 | `E/13-standby-down.txt` | Standby stopped only after the restore; :443 refused; DNS no longer points at it | E |
 | `E/14-notes.md` | Results table + viva points (gradual switch, ~38 s cache on macOS, production order, own key/same CA) | E |
 | `F/practice-log.md` | Real faults: Local Network privacy blocking nginx ("No route to host", no packet sent); ssh hang | F |
+| `A/00-events.txt` | Primary DNS stopped 15:45:42 / started 15:46:06 with `brew services` on mac1 | A |
+| `A/01-baseline.txt` | mac3 resolver order (10.7.17.233, 10.7.3.175); both servers same record; dig `SERVER: 10.7.17.233` | A |
+| `A/02-primary-down-client.txt` | Primary down: mac3 and mac1 plain dig → `SERVER: 10.7.3.175` (1.05 s); HTTPS 8/8 × 200 | A |
+| `A/03-mac3-client-dns-icmp.pcap` | pktap on mac3: query → ICMP port unreachable from mac1 → same query to the backup → answer | A |
+| `A/04-pcap-summary.txt` | The capture decoded, only packets about app.team1.test (ICMP matched to our queries by port) | A |
+| `A/05-restore.txt` | Primary back: `SERVER: 10.7.17.233`, 0.04 s | A |
+| `A/06-summary.txt` | Numbers: 1.01 s from primary to backup for plain dig; 5 ICMP, 8 answers from the backup | A |
+| `A/07-zone-config-check.txt`, `A/08-mac3-upstream.pcap` | mac3 forwards unknown team1.test names to 8.8.8.8 (no `local=/team1.test/`), mac1 answers itself | A |
+| `A/09-notes.md` | Results + viva points (ICMP = fast failover, identical records, launchd KeepAlive, config gap) | A |
+| `B/01-ttl-from-E.txt` | Built by `B-ttl-report.sh` from the Ext E run: TTL 30, both servers changed, server new vs client cached, flush = instant, ~37.7 s cache | B |
 
 ---
 
