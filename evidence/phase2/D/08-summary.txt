@@ -1,0 +1,25 @@
+# Ext D · 08 summary (edge clock: pcap + nginx t=$msec; client view from 03-client-loop.txt)
+# Date:      2026-11-25 15:14:51 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/D-failover.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# A down (edge view) from 15:13:57.183 to 15:14:24.441: 27.3 s
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+## Client view (mac1)
+  requests: 57   http 200: 57   
+  retried on the other backend, client still got 200: 4
+    15:13:59.791  t+15  #15  http=200  backend=B  x-upstream=10.7.3.175:3001,127.0.0.1:3002   x-upstream-status=502,200  dns=0.0027 total=0.9949s
+    15:14:01.932  t+17  #17  http=200  backend=B  x-upstream=10.7.3.175:3001,127.0.0.1:3002   x-upstream-status=502,200  dns=0.0030 total=0.7500s
+    15:14:09.697  t+25  #24  http=200  backend=B  x-upstream=10.7.3.175:3001,127.0.0.1:3002   x-upstream-status=502,200  dns=0.0032 total=1.4734s
+    15:14:17.538  t+33  #31  http=200  backend=B  x-upstream=10.7.3.175:3001,127.0.0.1:3002   x-upstream-status=502,200  dns=0.0028 total=0.8666s
+  slowest: 1.473 s
+    15:14:09.697  t+25  #24  http=200  backend=B  x-upstream=10.7.3.175:3001,127.0.0.1:3002   x-upstream-status=502,200  dns=0.0032 total=1.4734s
+## Edge view (nginx per-request log, classified by the pcap window)
+  before:        A=7 B=7
+  A down:        A=0 B=24   retried=4   <- A must be 0
+  after restart: A=10 B=10
+  first request served by A again: 3.3 s after the START command
+  (passive health check: nginx only finds out A is back when it next TRIES it, after fail_timeout; that first try is the SYN-ACK at the end of the down window, 0.0 s before this request was logged)
+## nginx error.log
+  4 x connect() failed, 0 x no live upstreams
+    first: 2026/11/25 15:13:59 [error] 31234#0: *172 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.17.233, server: app.team1.test, request: "GET /api/status HTTP/2.0", upstream: "http://10.7.3.175:3001/api/status", host: "app.team1.test"

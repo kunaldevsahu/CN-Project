@@ -1,0 +1,59 @@
+# Ext D · 06 upstream + failover settings in force (deployed config)
+# Date:      2026-11-25 15:14:49 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/D-failover.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# $ nginx -t; sed -n '/^upstream/,/^}/p' /opt/homebrew/etc/nginx/servers/team1.conf; grep proxy_ /opt/homebrew/etc/nginx/servers/team1.conf
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+nginx: the configuration file /opt/homebrew/etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /opt/homebrew/etc/nginx/nginx.conf test is successful
+
+upstream team1_backends {
+    # Shared memory: the failure counters are shared by all worker processes.
+    # 128k, not 64k: nginx needs >= 8 memory pages and Apple silicon pages are 16 KB
+    # (64k fails nginx -t with: zone "team1_backends" is too small).
+    zone team1_backends 128k;
+
+    # Round robin + PASSIVE health checking (open-source nginx has no active probes):
+    # 2 failed attempts (max_fails) within 5 s mark a server down for 5 s (fail_timeout);
+    # after that nginx tries it again with the next real request.
+    server 10.7.3.175:3001 max_fails=2 fail_timeout=5s;   # Backend A (Mac 3, Himanshu)
+    server 127.0.0.1:3002  max_fails=2 fail_timeout=5s;   # Backend B (this Mac, loopback)
+}
+
+70:        proxy_connect_timeout 2s;    # no SYN-ACK in 2 s (host asleep, packet dropped)
+71:        proxy_send_timeout    5s;
+72:        proxy_read_timeout    5s;    # backend accepted but never answered
+76:        proxy_next_upstream         error timeout http_502 http_503;
+77:        proxy_next_upstream_tries   2;
+78:        proxy_next_upstream_timeout 6s;
+
+## Phase 1 vs Phase 2 edge config (diff nginx/team1.conf nginx/phase2/team1.conf, comments stripped)
+0a1,2
+> log_format team1 '$time_iso8601 t=$msec client=$remote_addr "$request" status=$status '
+>                  'upstream=$upstream_addr ustatus=$upstream_status urt=$upstream_response_time';
+2,3c4,6
+<     server 10.7.18.211:3001 max_fails=1 fail_timeout=10s;   # Backend A (Himanshu)
+<     server 10.7.16.48:3002  max_fails=1 fail_timeout=10s;   # Backend B (Kunal)
+---
+>     zone team1_backends 128k;
+>     server 10.7.3.175:3001 max_fails=2 fail_timeout=5s;   # Backend A (Mac 3, Himanshu)
+>     server 127.0.0.1:3002  max_fails=2 fail_timeout=5s;   # Backend B (this Mac, loopback)
+16c19,23
+<     ssl_protocols       TLSv1.2 TLSv1.3;   # keep 1.2: its handshake is visible in Wireshark
+---
+>     ssl_protocols       TLSv1.2 TLSv1.3;
+>     access_log /opt/homebrew/var/log/nginx/team1-access.log team1;
+>     add_header X-Edge            mac4-primary     always;   # which edge answered (primary or standby)
+>     add_header X-Upstream        $upstream_addr   always;   # backend(s) tried, in order
+>     add_header X-Upstream-Status $upstream_status always;   # status from each attempt
+23,24c30,35
+<         proxy_connect_timeout 2s;
+<         proxy_next_upstream error timeout http_502 http_503;
+---
+>         proxy_connect_timeout 2s;    # no SYN-ACK in 2 s (host asleep, packet dropped)
+>         proxy_send_timeout    5s;
+>         proxy_read_timeout    5s;    # backend accepted but never answered
+>         proxy_next_upstream         error timeout http_502 http_503;
+>         proxy_next_upstream_tries   2;
+>         proxy_next_upstream_timeout 6s;

@@ -1,0 +1,19 @@
+# Ext D · 00 events: what was done when (this Mac's clock, ms)
+# Date:      2026-11-25 15:13:39 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/D-failover.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# Plan: 60s loop on mac1, stop Backend A at ~15s, start it at ~40s, request every 0.5s
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+15:13:40.412  preflight: edge -> A direct: 200  edge -> B direct: 200  nginx: running
+15:13:41.962  tcpdump started: $ sudo -n /usr/sbin/tcpdump -i en0 -U -Z kunaldevsahu -w evidence/phase2/D/01-en0-edge-A-3001.pcap 'tcp port 3001 and host 10.7.3.175'
+15:13:41.981  tcpdump started: $ sudo -n /usr/sbin/tcpdump -i lo0 -U -Z kunaldevsahu -w evidence/phase2/D/02-lo0-edge-B-3002.pcap 'tcp port 3002'
+15:13:42.002  client loop started on mac1
+15:13:56.187  STOP Backend A on mac3
+                ↳ [mac3]$ kill -INT 62270     # /usr/local/bin/node server.js, same as Ctrl+C
+                ↳ port 3001 closed at 15:13:57.221 (mac3 clock)
+15:14:21.146  START Backend A on mac3
+                ↳ [mac3]$ cd ~/cn-backend && BACKEND=A PORT=3001 nohup /usr/local/bin/node server.js >> ~/team1-logs/backendA.log 2>&1 &
+                ↳ listening again at 15:14:21.960 (mac3 clock): node pid 62340 *:3001  (pid in ~/team1-logs/backendA.pid)
+15:14:45.347  client loop finished
+15:14:47.494  tcpdump stopped: en0 106 packets captured   lo0 168 packets captured

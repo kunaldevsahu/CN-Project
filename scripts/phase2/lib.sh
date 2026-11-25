@@ -32,6 +32,11 @@ header() {  # header "<title>" "<extra line>"...
 # Prefix every line with the time (date +%T)
 ts() { while IFS= read -r l; do printf '%s  %s\n' "$(date +%T)" "$l"; done; }
 
+# Time with milliseconds (macOS date has no %N): now_ms -> 15:09:31.482 ; epoch -> 1795599571.482 ; hms <epoch> -> 15:09:31.482
+now_ms() { perl -MTime::HiRes=time -MPOSIX=strftime -e '$t=time; printf "%s.%03d", strftime("%H:%M:%S", localtime $t), ($t-int($t))*1000'; }
+epoch()  { perl -MTime::HiRes=time -e 'printf "%.3f", time'; }
+hms()    { perl -MPOSIX=strftime -e '$t=shift; printf "%s.%03d", strftime("%H:%M:%S", localtime $t), ($t-int($t))*1000' "$1"; }
+
 # Run a command on this Mac, printing it first
 run() { echo "\$ $*"; bash -c "$*" 2>&1; echo; }
 
@@ -47,6 +52,7 @@ curl -s -o /dev/null --max-time 4 --resolve "\$NAME:443:\$EDGE_IP" "https://\$NA
 [ "\${NEED_CA:-}" = 1 ] && echo "  (note: CA not yet trusted in this client's keychain -> curl gets --cacert rootCA.pem; still verified, NOT -k)"
 tcurl() { if [ "\${NEED_CA:-}" = 1 ]; then curl --cacert <(printf '%s\n' "\$CA_PEM") "\$@"; else curl "\$@"; fi; }
 hv() { awk -F': ' -v k="\$1" 'tolower(\$1)==k{gsub("\r","",\$2);print \$2}'; }
+tsm() { perl -MTime::HiRes=time -MPOSIX=strftime -e '\$t=time; printf "%s.%03d", strftime("%H:%M:%S", localtime \$t), (\$t-int(\$t))*1000'; }
 EOF
 }
 

@@ -1,0 +1,22 @@
+# Ext D · 08 summary (numbers computed from 03-client-loop.txt and 00-events.txt)
+# Date:      2026-11-25 15:10:24 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/D-failover.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# A stopped 15:09:30, A started 15:09:55 (this Mac); client clock offset 0.19s applied
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+requests: 52   http 200: 52   
+before stop:   A=5 B=6
+A down:        A=1 B=20   <- A must be 0
+after restart: A=9 B=11
+retried on the other backend (client still got 200): 4 request(s)
+    15:09:34  t+17  #14  http=200  backend=B  x-upstream=10.7.3.175:3001,127.0.0.1:3002   x-upstream-status=502,200  total=1.490050s
+    15:09:36  t+19  #16  http=200  backend=B  x-upstream=10.7.3.175:3001,127.0.0.1:3002   x-upstream-status=502,200  total=0.493544s
+    15:09:44  t+27  #23  http=200  backend=B  x-upstream=10.7.3.175:3001,127.0.0.1:3002   x-upstream-status=502,200  total=1.502454s
+    15:09:52  t+35  #30  http=200  backend=B  x-upstream=10.7.3.175:3001,127.0.0.1:3002   x-upstream-status=502,200  total=1.659094s
+A back in rotation: first X-Backend A at 15:09:59 (client clock) = 3.8 s after the restart
+slowest request: 2.010 s
+    15:10:02  t+45  #37  http=200  backend=B  x-upstream=127.0.0.1:3002                   x-upstream-status=200      total=2.009785s
+
+nginx error.log during the test: 4 x connect() failed, 0 x no live upstreams
+    first: 2026/11/25 15:09:33 [error] 28601#0: *109 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.17.233, server: app.team1.test, request: "GET /api/status HTTP/2.0", upstream: "http://10.7.3.175:3001/api/status", host: "app.team1.test"

@@ -1,0 +1,26 @@
+# Ext D · 07 what the packets show (tcpdump -tt -nn -r <pcap>, this Mac's clock)
+# Date:      2026-11-25 15:14:51 IST
+# Run on:    Kunals-MacBook-Pro-3 10.7.30.71  (script: scripts/phase2/D-failover.sh )
+# Client:    mac1 = Vaibhavs-MacBook-Air-5 10.7.17.233
+# STOP command 15:13:56.170  ->  A's socket closed (first FIN/RST from A) 15:13:57.183
+# START command 15:14:21.130  ->  A accepts again (first SYN-ACK from A) 15:14:24.441
+# Every command is printed before its output: '$ ' = this Mac, '[mac1]$ ' = the client.
+
+## en0: edge 10.7.30.71 <-> Backend A 10.7.3.175:3001
+  HTTP requests the edge sent to A:  before 9   while down 0   after restart 11
+  TCP connections opened to A (SYN): 6   accepted (SYN-ACK): 2   refused (RST from A): 8 RST packets on 4 connection attempts
+  (nginx keeps upstream connections open: few SYNs, many requests. Each refused attempt = SYN with ECN [SEW] -> RST,
+   then macOS retries without ECN [S] -> RST again; Wi-Fi RTT 40-250 ms each, hence 0.4-0.9 s per failed try.)
+  A closes its connection when the process exits:
+    15:13:57.183 IP 10.7.3.175.3001 > 10.7.30.71.64855: Flags [F.], seq 1586811276, ack 1862727513, win 2048, options [nop,nop,TS val 68168908 ecr 487699276], length 0
+  First refused attempt (SYN -> RST):
+    15:13:59.206 IP 10.7.30.71.64857 > 10.7.3.175.3001: Flags [SEW], seq 2120765870, win 65535, options [mss 1413,nop,wscale 6,nop,nop,TS val 1404514547 ecr 0,sackOK,eol], length 0
+    15:13:59.246 IP 10.7.3.175.3001 > 10.7.30.71.64857: Flags [R.], seq 0, ack 2120765871, win 0, length 0
+    15:13:59.594 IP 10.7.30.71.64857 > 10.7.3.175.3001: Flags [S], seq 2120765870, win 65535, options [mss 1413,nop,wscale 6,nop,nop,TS val 1404514936 ecr 0,sackOK,eol], length 0
+    15:13:59.756 IP 10.7.3.175.3001 > 10.7.30.71.64857: Flags [R.], seq 0, ack 1, win 0, length 0
+  First accepted connection after the restart:
+    15:14:24.441 IP 10.7.3.175.3001 > 10.7.30.71.64862: Flags [S.E], seq 1155252778, ack 2273009576, win 65535, options [mss 1460,nop,wscale 6,nop,nop,TS val 914147133 ecr 978192786,sackOK,eol], length 0
+
+## lo0: edge <-> Backend B 127.0.0.1:3002
+  HTTP requests the edge sent to B:  before 7   while A down 24   after restart 10
+  TCP connections opened to B: 1 (kept alive and reused)

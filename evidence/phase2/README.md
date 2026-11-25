@@ -15,6 +15,17 @@ Scripts live in `scripts/phase2/` and are re-run live on demo day. Main client =
 | `baseline/02-https.txt` | HTTP :80 → 301 to HTTPS; TLS 1.3 + HTTP/2, cert issuer `Team1 Local Root CA 2026-11`, `ssl_verify_result=0` without `-k` | baseline |
 | `baseline/03-lb-loop.txt` | 10 timestamped requests: strict A/B alternation, A=5 B=5, all via `mac4-primary` | baseline, D |
 | `baseline/04-cache-304.txt` | `/api/status` no-store; `/api/cached` `public, max-age=60` + identical ETag from A and B; `If-None-Match` → 304 (both backends), wrong ETag → 200 | baseline |
+| `D/00-events.txt` | When Backend A was stopped (SIGINT) / restarted (nohup) on mac3, captures started/stopped (ms) | D |
+| `D/01-en0-edge-A-3001.pcap` | Edge ↔ A: FIN when A exits, SYN→RST (refused) ×4 attempts, first SYN-ACK when nginx retries A | D |
+| `D/02-lo0-edge-B-3002.pcap` | Edge ↔ B over loopback: one kept-alive connection carrying all 41 B requests | D |
+| `D/03-client-loop.txt` | mac1, 60 s: 57/57 × 200; B only while A down; 4 × `502,200` retries; A back after 3.3 s | D |
+| `D/04-nginx-error-excerpt.txt` | 4 × `connect() failed (61: Connection refused)` to 10.7.3.175:3001 | D |
+| `D/05-nginx-access-excerpt.txt` | Per-request upstream + status per try (`t=$msec` edge clock) | D |
+| `D/06-upstream-config.txt` | Upstream block, failover directives in force, Phase 1 → Phase 2 config diff | D |
+| `D/07-pcap-summary.txt` | Requests to A 9/0/11 and to B 7/24/10 (before/down/after); RST and ECN-retry detail | D |
+| `D/08-summary.txt` | Computed results: A=0 while down (27.3 s), 4 retries, recovery 3.3 s | D |
+| `D/09-spof-note.md` | Results of both runs, viva explanation, single point of failure (Mac 4 = edge + B) and fixes | D |
+| `D/run1/` | First run (52/52 × 200, recovery 3.8 s), kept for comparison; see its README for its known flaw | D |
 
 ---
 
