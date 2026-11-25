@@ -2,7 +2,9 @@
 distinguished_name = dn
 prompt = no
 [dn]
-CN = Team1 Local Root CA
+# Phase 2 (2026-11-25): new CA made on Mac 4 (edge moved from Mac 2). Dated name so it can't be
+# confused with the Phase 1 "Team1 Local Root CA" certificates still in some keychains.
+CN = Team1 Local Root CA 2026-11
 [v3_ca]
 basicConstraints = critical, CA:TRUE
 keyUsage = critical, keyCertSign, cRLSign
